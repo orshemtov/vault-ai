@@ -62,3 +62,31 @@ export function getFirstGenerationModelForProvider(
     modelId: providerModel.modelId
   };
 }
+
+export function getGenerationModelsForProvider(
+  catalogs: ProviderCatalogSnapshot[],
+  providerId: ProviderId
+): ProviderCapabilityMetadata[] {
+  return listGenerationModels(catalogs).filter(
+    (model) => model.providerId === providerId
+  );
+}
+
+export function resolveProviderScopedModel(
+  catalogs: ProviderCatalogSnapshot[],
+  providerId: ProviderId,
+  modelId: string
+): ProviderModelSelection | null {
+  const providerModel = getGenerationModelsForProvider(
+    catalogs,
+    providerId
+  ).find((model) => model.modelId === modelId);
+  if (!providerModel) {
+    return getFirstGenerationModelForProvider(catalogs, providerId);
+  }
+
+  return {
+    providerId: providerModel.providerId,
+    modelId: providerModel.modelId
+  };
+}

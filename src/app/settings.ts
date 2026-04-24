@@ -1,11 +1,15 @@
+import {
+  DEFAULT_ADVANCED_SETTINGS,
+  DEFAULT_AGENT,
+  DEFAULT_CHAT_MODEL,
+  DEFAULT_PROVIDER,
+  DEFAULT_PROVIDER_URLS,
+  DEFAULT_VAULT_ROOTS,
+  SUPPORTED_PROVIDERS
+} from "./defaults";
 import { z } from "zod";
 
-export const providerIdSchema = z.enum([
-  "openrouter",
-  "ollama",
-  "openai",
-  "anthropic"
-]);
+export const providerIdSchema = z.enum(SUPPORTED_PROVIDERS);
 
 export const pluginSettingsSchema = z.object({
   defaultProvider: providerIdSchema,
@@ -31,21 +35,21 @@ export type ProviderId = z.infer<typeof providerIdSchema>;
 export type VaultAiPluginSettings = z.infer<typeof pluginSettingsSchema>;
 
 export const DEFAULT_SETTINGS: VaultAiPluginSettings = {
-  defaultProvider: "openrouter",
-  defaultAgent: "ask",
-  defaultChatModel: "openai/gpt-5.4",
-  openRouterBaseUrl: "https://openrouter.ai/api/v1",
+  defaultProvider: DEFAULT_PROVIDER,
+  defaultAgent: DEFAULT_AGENT,
+  defaultChatModel: DEFAULT_CHAT_MODEL,
+  openRouterBaseUrl: DEFAULT_PROVIDER_URLS.openRouterBaseUrl,
   openRouterApiKey: "",
-  openAiBaseUrl: "https://api.openai.com/v1",
+  openAiBaseUrl: DEFAULT_PROVIDER_URLS.openAiBaseUrl,
   openAiApiKey: "",
-  anthropicBaseUrl: "https://api.anthropic.com",
+  anthropicBaseUrl: DEFAULT_PROVIDER_URLS.anthropicBaseUrl,
   anthropicApiKey: "",
-  ollamaBaseUrl: "http://127.0.0.1:11434",
-  agentsRoot: "Agents",
-  skillsRoot: "Skills",
-  commandsRoot: "Commands",
-  conversationsRoot: "AI/Conversations",
-  memoryRoot: "AI/Memory",
-  enableDebugLogging: false,
-  enableIndexingOnStartup: true
+  ollamaBaseUrl: DEFAULT_PROVIDER_URLS.ollamaBaseUrl,
+  agentsRoot: DEFAULT_VAULT_ROOTS.agentsRoot,
+  skillsRoot: DEFAULT_VAULT_ROOTS.skillsRoot,
+  commandsRoot: DEFAULT_VAULT_ROOTS.commandsRoot,
+  conversationsRoot: DEFAULT_VAULT_ROOTS.conversationsRoot,
+  memoryRoot: DEFAULT_VAULT_ROOTS.memoryRoot,
+  enableDebugLogging: DEFAULT_ADVANCED_SETTINGS.enableDebugLogging,
+  enableIndexingOnStartup: DEFAULT_ADVANCED_SETTINGS.enableIndexingOnStartup
 };

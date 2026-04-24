@@ -12,7 +12,12 @@ describe("pluginSettingsSchema", () => {
   });
 
   it("requires a commands root", () => {
-    expect(DEFAULT_SETTINGS.commandsRoot).toBe("Commands");
+    expect(DEFAULT_SETTINGS.commandsRoot).toBe("AI/Commands");
+  });
+
+  it("keeps agents and skills under AI by default", () => {
+    expect(DEFAULT_SETTINGS.agentsRoot).toBe("AI/Agents");
+    expect(DEFAULT_SETTINGS.skillsRoot).toBe("AI/Skills");
   });
 
   it("requires a memory root", () => {

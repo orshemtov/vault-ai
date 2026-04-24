@@ -1,4 +1,5 @@
 import type { AgentDefinition } from "@agents/agent-types";
+import { SUPPORTED_PROVIDERS } from "@app/defaults";
 import type { VaultAiPlugin } from "@app/plugin";
 import type { VaultAiPluginSettings, ProviderId } from "@app/settings";
 import type { CommandDefinition } from "../../commands/command-types";
@@ -12,9 +13,10 @@ import type { ProviderCatalogSnapshot } from "@providers/provider-runtime";
 import {
   findExactGenerationModel,
   getFirstGenerationModelForProvider,
-  listGenerationModels
+  getGenerationModelsForProvider
 } from "@providers/provider-selection";
 import type { PersistedConversation } from "@storage/conversation-types";
+import { formatCitationLabel, getVisibleCitations } from "@ui/citation-display";
 import { createMessage, type AssistantMessage } from "@ui/assistant-state";
 import {
   findLastSuccessfulAssistantMessage,
@@ -48,20 +50,24 @@ type SuggestionItem = {
   section: string;
 };
 
-const PROVIDERS: ProviderId[] = ["openrouter", "ollama", "openai", "anthropic"];
+type ModelOption = {
+  key: string;
+  providerId: ProviderId;
+  modelId: string;
+  label: string;
+  shortLabel: string;
+};
+
 const MAX_INLINE_SUGGESTIONS = 7;
 const MODEL_KEY_SEPARATOR = "::";
 
 export function AssistantShell({ plugin, settings }: AssistantShellProps) {
   const [catalogs, setCatalogs] = useState<ProviderCatalogSnapshot[]>(() =>
-    plugin.getProviderCatalogSnapshots(PROVIDERS)
+    plugin.getProviderCatalogSnapshots(SUPPORTED_PROVIDERS)
   );
   const [agents, setAgents] = useState<AgentDefinition[]>([]);
   const [conversations, setConversations] = useState<PersistedConversation[]>(
     []
-  );
-  const [selectedProvider, setSelectedProvider] = useState<ProviderId>(
-    settings.defaultProvider
   );
   const [selectedAgentId, setSelectedAgentId] = useState(settings.defaultAgent);
   const [selectedModel, setSelectedModel] = useState(settings.defaultChatModel);
@@ -86,7 +92,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
   const activeAbortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    setCatalogs(plugin.getProviderCatalogSnapshots(PROVIDERS));
+    setCatalogs(plugin.getProviderCatalogSnapshots(SUPPORTED_PROVIDERS));
   }, [plugin, settings]);
 
   useEffect(() => {
@@ -126,22 +132,16 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
       setConversationTitle("New chat");
 
       if (savedAssistantState) {
-        setSelectedProvider(
-          savedAssistantState.providerId ?? settings.defaultProvider
-        );
         setSelectedAgentId(
           savedAssistantState.agentId ?? settings.defaultAgent
         );
         setSelectedModel(
           savedAssistantState.modelId ?? settings.defaultChatModel
         );
-        setHasManualModelSelection(
-          Boolean(savedAssistantState.providerId || savedAssistantState.modelId)
-        );
+        setHasManualModelSelection(Boolean(savedAssistantState.modelId));
         return;
       }
 
-      setSelectedProvider(settings.defaultProvider);
       setSelectedAgentId(settings.defaultAgent);
       setSelectedModel(settings.defaultChatModel);
     };
@@ -157,6 +157,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
     () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
     [agents, selectedAgentId]
   );
+  const selectedProvider = settings.defaultProvider;
   const selectedCatalog = useMemo(
     () =>
       catalogs.find((catalog) => catalog.providerId === selectedProvider) ??
@@ -166,18 +167,19 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
   const selectedProviderStatus = selectedCatalog?.status ?? "idle";
   const availableModels =
     selectedCatalog?.models.filter((model) => model.supportsGeneration) ?? [];
-  const allModelOptions = useMemo(
+  const providerModelOptions = useMemo<ModelOption[]>(
     () =>
-      listGenerationModels(catalogs).map((model) => ({
-        key: `${model.providerId}${MODEL_KEY_SEPARATOR}${model.modelId}`,
-        providerId: model.providerId,
-        modelId: model.modelId,
-        label: `${model.providerId}/${model.displayName}`,
-        shortLabel: model.displayName
-      })),
-    [catalogs]
+      getGenerationModelsForProvider(catalogs, selectedProvider).map(
+        (model) => ({
+          key: `${model.providerId}${MODEL_KEY_SEPARATOR}${model.modelId}`,
+          providerId: model.providerId,
+          modelId: model.modelId,
+          label: model.displayName,
+          shortLabel: model.displayName
+        })
+      ),
+    [catalogs, selectedProvider]
   );
-  const selectedModelKey = `${selectedProvider}${MODEL_KEY_SEPARATOR}${selectedModel}`;
   const resolvedSelection = useMemo(
     () =>
       findExactGenerationModel(catalogs, {
@@ -186,17 +188,17 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
       }),
     [catalogs, selectedModel, selectedProvider]
   );
+  const resolvedProviderId = resolvedSelection?.providerId ?? selectedProvider;
+  const resolvedModelId = resolvedSelection?.modelId ?? selectedModel;
   const selectedModelOption =
-    allModelOptions.find((option) => option.key === selectedModelKey) ??
+    providerModelOptions.find((option) => option.modelId === resolvedModelId) ??
     (resolvedSelection
-      ? (allModelOptions.find(
+      ? (providerModelOptions.find(
           (option) =>
             option.providerId === resolvedSelection.providerId &&
             option.modelId === resolvedSelection.modelId
         ) ?? null)
       : null);
-  const resolvedProviderId = resolvedSelection?.providerId ?? selectedProvider;
-  const resolvedModelId = resolvedSelection?.modelId ?? selectedModel;
   const commandSuggestions = useMemo(
     () => getCommandSuggestions(prompt, commands),
     [commands, prompt]
@@ -267,9 +269,12 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
       return;
     }
 
-    setSelectedProvider(selectedAgent.provider);
     setSelectedModel(selectedAgent.model);
   }, [hasManualModelSelection, selectedAgent]);
+
+  useEffect(() => {
+    setHasManualModelSelection(false);
+  }, [selectedProvider]);
 
   useEffect(() => {
     if (availableModels.length === 0) {
@@ -321,11 +326,10 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
 
   useEffect(() => {
     void plugin.saveAssistantState({
-      providerId: selectedProvider,
       modelId: resolvedModelId,
       agentId: selectedAgentId
     });
-  }, [plugin, resolvedModelId, selectedAgentId, selectedProvider]);
+  }, [plugin, resolvedModelId, selectedAgentId]);
 
   const handleConversationScroll = () => {
     const element = conversationRef.current;
@@ -414,9 +418,8 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
       plugin,
       providerStatus: selectedProviderStatus,
       selectedProviderId: selectedProvider,
-      items: allModelOptions,
+      items: providerModelOptions,
       onChoose: (option) => {
-        setSelectedProvider(option.providerId as ProviderId);
         setSelectedModel(option.modelId);
         setHasManualModelSelection(true);
       }
@@ -711,7 +714,6 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
     setConversationPath(conversation.path);
     setConversationTitle(conversation.title);
     setSelectedAgentId(conversation.agentId);
-    setSelectedProvider(conversation.providerId);
     setSelectedModel(conversation.modelId);
     setHasManualModelSelection(true);
     setMessages(
@@ -849,24 +851,42 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
                     text={formatMessageText(message.text)}
                   />
                   {message.status !== "error" &&
-                  message.citations &&
-                  message.citations.length > 0 ? (
+                  getVisibleCitations(message.citations).length > 0 ? (
                     <details className="vault-ai__message-meta" open>
-                      <summary>Sources {message.citations.length}</summary>
+                      <summary>
+                        Sources {getVisibleCitations(message.citations).length}
+                      </summary>
                       <ul className="vault-ai__message-source-list">
-                        {message.citations.map((citation) => (
-                          <li key={`${message.id}-${citation.path}`}>
-                            <button
-                              className="vault-ai__source-link"
-                              onClick={() =>
-                                void plugin.openConversationNote(citation.path)
-                              }
-                              type="button"
-                            >
-                              {citation.path}
-                            </button>
-                          </li>
-                        ))}
+                        {getVisibleCitations(message.citations).map(
+                          (citation) => {
+                            const sourceLabel = formatCitationLabel(
+                              citation.path
+                            );
+                            return (
+                              <li key={`${message.id}-${citation.path}`}>
+                                <button
+                                  className="vault-ai__source-link"
+                                  onClick={() =>
+                                    void plugin.openConversationNote(
+                                      citation.path
+                                    )
+                                  }
+                                  type="button"
+                                  title={citation.path}
+                                >
+                                  <span className="vault-ai__source-link-title">
+                                    {sourceLabel.title}
+                                  </span>
+                                  {sourceLabel.detail ? (
+                                    <span className="vault-ai__source-link-detail">
+                                      {sourceLabel.detail}
+                                    </span>
+                                  ) : null}
+                                </button>
+                              </li>
+                            );
+                          }
+                        )}
                       </ul>
                     </details>
                   ) : null}

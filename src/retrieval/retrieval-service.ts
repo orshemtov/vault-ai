@@ -1,4 +1,4 @@
-import { App, TFile } from "obsidian";
+import { App, TAbstractFile, TFile } from "obsidian";
 
 const DEFAULT_RETRIEVAL_LIMIT = 5;
 const MAX_NOTE_CHARS = 3000;
@@ -12,14 +12,39 @@ export interface RetrievedNote {
 }
 
 export class RetrievalService {
+  private readonly noteIndex = new Map<
+    string,
+    { path: string; basename: string; folderPath: string; content: string }
+  >();
+  private started = false;
+
   constructor(private readonly app?: App) {}
 
-  start(): void {
-    // Placeholder for indexing and retrieval bootstrap.
+  async start(): Promise<void> {
+    if (!this.app || this.started) {
+      return;
+    }
+
+    await this.rebuildIndex();
+    this.started = true;
+    this.app.vault.on("create", (file) => {
+      void this.indexAbstractFile(file);
+    });
+    this.app.vault.on("modify", (file) => {
+      void this.indexAbstractFile(file);
+    });
+    this.app.vault.on("delete", (file) => {
+      this.noteIndex.delete(file.path);
+    });
+    this.app.vault.on("rename", (file, oldPath) => {
+      this.noteIndex.delete(oldPath);
+      void this.indexAbstractFile(file);
+    });
   }
 
   stop(): void {
-    // Placeholder for teardown and resource cleanup.
+    this.noteIndex.clear();
+    this.started = false;
   }
 
   async retrieveRelevantNotes(options: {
@@ -32,7 +57,6 @@ export class RetrievalService {
       return [];
     }
 
-    const app = this.app;
     const queryTokens = tokenize(options.query);
     if (queryTokens.length === 0) {
       return [];
@@ -40,67 +64,124 @@ export class RetrievalService {
 
     const preferredPathSet = new Set(options.preferredPaths ?? []);
     const excludedRoots = options.excludedRoots ?? [];
-    const files = app.vault
-      .getMarkdownFiles()
-      .filter((file) => isIncludedPath(file.path, excludedRoots));
-    const rankedNotes = await Promise.all(
-      files.map(async (file) => {
-        const content = await app.vault.cachedRead(file);
-        const score = scoreNote({
-          file,
-          content,
+    if (!this.started) {
+      await this.rebuildIndex();
+    }
+
+    const rankedNotes = [...this.noteIndex.values()]
+      .filter((note) => isIncludedPath(note.path, excludedRoots))
+      .map((note) => {
+        const score = scoreIndexedNote({
+          note,
+          query: options.query,
           queryTokens,
-          isPreferred: preferredPathSet.has(file.path)
+          isPreferred: preferredPathSet.has(note.path)
         });
 
         return score > 0
           ? {
-              path: file.path,
+              path: note.path,
               score,
-              content: content.slice(0, MAX_NOTE_CHARS),
-              snippet: createSnippet(content)
+              content: note.content.slice(0, MAX_NOTE_CHARS),
+              snippet: createSnippet(note.content, options.query, queryTokens)
             }
           : null;
-      })
-    );
+      });
 
     return rankedNotes
       .filter((note): note is RetrievedNote => note !== null)
       .sort((left, right) => right.score - left.score)
       .slice(0, options.limit ?? DEFAULT_RETRIEVAL_LIMIT);
   }
+
+  async rebuildIndex(): Promise<void> {
+    if (!this.app) {
+      return;
+    }
+
+    const files = this.app.vault.getMarkdownFiles();
+    const indexedNotes = await Promise.all(
+      files.map(async (file) => this.readIndexedNote(file))
+    );
+
+    this.noteIndex.clear();
+    for (const note of indexedNotes) {
+      this.noteIndex.set(note.path, note);
+    }
+  }
+
+  getIndexedNote(path: string) {
+    return this.noteIndex.get(path) ?? null;
+  }
+
+  private async indexAbstractFile(file: TAbstractFile): Promise<void> {
+    if (!(file instanceof TFile) || file.extension !== "md") {
+      return;
+    }
+
+    this.noteIndex.set(file.path, await this.readIndexedNote(file));
+  }
+
+  private async readIndexedNote(file: TFile) {
+    const content = await this.app!.vault.cachedRead(file);
+    return {
+      path: file.path,
+      basename: file.basename,
+      folderPath: file.parent?.path ?? "",
+      content
+    };
+  }
 }
 
-function scoreNote(options: {
-  file: TFile;
-  content: string;
+function scoreIndexedNote(options: {
+  note: { path: string; basename: string; folderPath: string; content: string };
+  query: string;
   queryTokens: string[];
   isPreferred: boolean;
 }): number {
-  const lowercasePath = options.file.path.toLowerCase();
-  const lowercaseBasename = options.file.basename.toLowerCase();
-  const lowercaseContent = options.content.toLowerCase();
+  const lowercasePath = options.note.path.toLowerCase();
+  const lowercaseBasename = options.note.basename.toLowerCase();
+  const lowercaseFolderPath = options.note.folderPath.toLowerCase();
+  const lowercaseContent = options.note.content.toLowerCase();
+  const normalizedQuery = options.query.toLowerCase().trim();
 
-  return options.queryTokens.reduce(
-    (score, token) => {
-      let nextScore = score;
+  let score = options.isPreferred ? 28 : 0;
 
-      if (lowercaseBasename.includes(token)) {
-        nextScore += 6;
-      }
+  if (normalizedQuery.length >= 3) {
+    if (lowercaseBasename.includes(normalizedQuery)) {
+      score += 28;
+    }
 
-      if (lowercasePath.includes(token)) {
-        nextScore += 3;
-      }
+    if (lowercaseFolderPath.includes(normalizedQuery)) {
+      score += 16;
+    }
 
-      if (lowercaseContent.includes(token)) {
-        nextScore += 2;
-      }
+    if (lowercasePath.includes(normalizedQuery)) {
+      score += 18;
+    }
 
-      return nextScore;
-    },
-    options.isPreferred ? 5 : 0
-  );
+    if (lowercaseContent.includes(normalizedQuery)) {
+      score += 14;
+    }
+  }
+
+  for (const token of options.queryTokens) {
+    if (lowercaseBasename.includes(token)) {
+      score += 10;
+    }
+
+    if (lowercaseFolderPath.includes(token)) {
+      score += 6;
+    }
+
+    if (lowercasePath.includes(token)) {
+      score += 4;
+    }
+
+    score += Math.min(occurrenceCount(lowercaseContent, token), 4) * 2;
+  }
+
+  return score;
 }
 
 function tokenize(query: string): string[] {
@@ -117,6 +198,46 @@ function isIncludedPath(path: string, excludedRoots: string[]): boolean {
   );
 }
 
-function createSnippet(content: string): string {
-  return content.replace(/\s+/g, " ").trim().slice(0, MAX_SNIPPET_CHARS);
+function createSnippet(
+  content: string,
+  query: string,
+  queryTokens: string[]
+): string {
+  const normalized = content.replace(/\s+/g, " ").trim();
+  const lowercase = normalized.toLowerCase();
+  const normalizedQuery = query.toLowerCase().trim();
+
+  let matchIndex =
+    normalizedQuery.length >= 3 ? lowercase.indexOf(normalizedQuery) : -1;
+
+  if (matchIndex === -1) {
+    for (const token of queryTokens) {
+      matchIndex = lowercase.indexOf(token);
+      if (matchIndex !== -1) {
+        break;
+      }
+    }
+  }
+
+  if (matchIndex === -1) {
+    return normalized.slice(0, MAX_SNIPPET_CHARS);
+  }
+
+  const start = Math.max(0, matchIndex - 80);
+  const end = Math.min(normalized.length, start + MAX_SNIPPET_CHARS);
+  const snippet = normalized.slice(start, end).trim();
+
+  return start > 0 ? `...${snippet}` : snippet;
+}
+
+function occurrenceCount(haystack: string, token: string): number {
+  let count = 0;
+  let currentIndex = haystack.indexOf(token);
+
+  while (currentIndex !== -1) {
+    count += 1;
+    currentIndex = haystack.indexOf(token, currentIndex + token.length);
+  }
+
+  return count;
 }

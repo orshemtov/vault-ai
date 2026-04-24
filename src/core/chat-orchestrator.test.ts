@@ -1,3 +1,4 @@
+import { createTestSettings } from "@app/test-fixtures";
 import type { ProviderRegistry } from "@providers/provider-registry";
 import type { ToolRuntime } from "@tools/tool-runtime";
 import { ChatOrchestrator, buildUserPrompt } from "./chat-orchestrator";
@@ -154,25 +155,7 @@ describe("ChatOrchestrator", () => {
           promptContext: "Note content"
         }
       },
-      {
-        defaultProvider: "openrouter",
-        defaultAgent: "ask",
-        defaultChatModel: "openai/gpt-5.4",
-        openRouterBaseUrl: "https://openrouter.ai/api/v1",
-        openRouterApiKey: "",
-        openAiBaseUrl: "https://api.openai.com/v1",
-        openAiApiKey: "",
-        anthropicBaseUrl: "https://api.anthropic.com",
-        anthropicApiKey: "",
-        ollamaBaseUrl: "http://127.0.0.1:11434",
-        agentsRoot: "Agents",
-        skillsRoot: "Skills",
-        commandsRoot: "Commands",
-        conversationsRoot: "AI/Conversations",
-        memoryRoot: "AI/Memory",
-        enableDebugLogging: false,
-        enableIndexingOnStartup: true
-      }
+      createTestSettings()
     );
 
     expect(reply.text).toContain("provider reply");
@@ -181,11 +164,11 @@ describe("ChatOrchestrator", () => {
     ]);
   });
 
-  it("attaches evidence-based citations even when the response omits note names", async () => {
+  it("does not attach citations when the answer does not support them", async () => {
     const registry = {
       get: () => ({
         generateText: async () => ({
-          text: "General answer with no note names"
+          text: "General answer with no supporting references"
         })
       })
     } as unknown as ProviderRegistry;
@@ -233,29 +216,75 @@ describe("ChatOrchestrator", () => {
           promptContext: "Note content"
         }
       },
+      createTestSettings()
+    );
+
+    expect(reply.citations).toEqual([]);
+  });
+
+  it("keeps retrieved citations when the answer overlaps the retrieved snippet", async () => {
+    const registry = {
+      get: () => ({
+        generateText: async () => ({
+          text: "The answer focuses on flooring and rack planning for the setup."
+        })
+      })
+    } as unknown as ProviderRegistry;
+    const orchestrator = new ChatOrchestrator(registry);
+
+    const reply = await orchestrator.generateReply(
       {
-        defaultProvider: "openrouter",
-        defaultAgent: "ask",
-        defaultChatModel: "openai/gpt-5.4",
-        openRouterBaseUrl: "https://openrouter.ai/api/v1",
-        openRouterApiKey: "",
-        openAiBaseUrl: "https://api.openai.com/v1",
-        openAiApiKey: "",
-        anthropicBaseUrl: "https://api.anthropic.com",
-        anthropicApiKey: "",
-        ollamaBaseUrl: "http://127.0.0.1:11434",
-        agentsRoot: "Agents",
-        skillsRoot: "Skills",
-        commandsRoot: "Commands",
-        conversationsRoot: "AI/Conversations",
-        memoryRoot: "AI/Memory",
-        enableDebugLogging: false,
-        enableIndexingOnStartup: true
-      }
+        agent: {
+          id: "ask",
+          name: "Ask",
+          description: "Read assistant",
+          mode: "primary",
+          provider: "openrouter",
+          model: "openai/gpt-5.4",
+          temperature: 0.2,
+          notes: {
+            read: true,
+            search: true,
+            create: false,
+            edit: false,
+            move: false,
+            delete: false
+          },
+          tools: {
+            mode: "allow-all",
+            items: []
+          },
+          skills: {
+            mode: "allow-all",
+            items: []
+          },
+          prompt: "You are the ask agent.",
+          source: "built-in"
+        },
+        providerId: "openrouter",
+        modelId: "openai/gpt-5.4",
+        prompt: "Summarize this note",
+        contextSummary: {
+          scope: "current-note",
+          title: "Setup",
+          description: "Using the active note.",
+          notePaths: ["Notes/Setup.md"],
+          retrievalNotePaths: ["Notes/Gym Plan.md"],
+          retrievalNotes: [
+            {
+              path: "Notes/Gym Plan.md",
+              score: 42,
+              snippet: "...flooring and rack planning for the setup..."
+            }
+          ],
+          promptContext: "Note content"
+        }
+      },
+      createTestSettings()
     );
 
     expect(reply.citations).toEqual([
-      { path: "Notes/My note.md", reason: "retrieved" }
+      { path: "Notes/Gym Plan.md", reason: "retrieved" }
     ]);
   });
 
@@ -318,25 +347,7 @@ describe("ChatOrchestrator", () => {
           promptContext: "Note content"
         }
       },
-      {
-        defaultProvider: "openrouter",
-        defaultAgent: "ask",
-        defaultChatModel: "openai/gpt-5.4",
-        openRouterBaseUrl: "https://openrouter.ai/api/v1",
-        openRouterApiKey: "",
-        openAiBaseUrl: "https://api.openai.com/v1",
-        openAiApiKey: "",
-        anthropicBaseUrl: "https://api.anthropic.com",
-        anthropicApiKey: "",
-        ollamaBaseUrl: "http://127.0.0.1:11434",
-        agentsRoot: "Agents",
-        skillsRoot: "Skills",
-        commandsRoot: "Commands",
-        conversationsRoot: "AI/Conversations",
-        memoryRoot: "AI/Memory",
-        enableDebugLogging: false,
-        enableIndexingOnStartup: true
-      },
+      createTestSettings(),
       {
         onDelta: (delta) => deltas.push(delta)
       }
@@ -422,25 +433,7 @@ describe("ChatOrchestrator", () => {
           promptContext: "Note content"
         }
       },
-      {
-        defaultProvider: "openrouter",
-        defaultAgent: "ask",
-        defaultChatModel: "openai/gpt-5.4",
-        openRouterBaseUrl: "https://openrouter.ai/api/v1",
-        openRouterApiKey: "",
-        openAiBaseUrl: "https://api.openai.com/v1",
-        openAiApiKey: "",
-        anthropicBaseUrl: "https://api.anthropic.com",
-        anthropicApiKey: "",
-        ollamaBaseUrl: "http://127.0.0.1:11434",
-        agentsRoot: "Agents",
-        skillsRoot: "Skills",
-        commandsRoot: "Commands",
-        conversationsRoot: "AI/Conversations",
-        memoryRoot: "AI/Memory",
-        enableDebugLogging: false,
-        enableIndexingOnStartup: true
-      },
+      createTestSettings(),
       {
         onDelta: (delta) => deltas.push(delta)
       }
@@ -528,25 +521,7 @@ describe("ChatOrchestrator", () => {
           promptContext: "Note content"
         }
       },
-      {
-        defaultProvider: "openrouter",
-        defaultAgent: "ask",
-        defaultChatModel: "openai/gpt-5.4",
-        openRouterBaseUrl: "https://openrouter.ai/api/v1",
-        openRouterApiKey: "",
-        openAiBaseUrl: "https://api.openai.com/v1",
-        openAiApiKey: "",
-        anthropicBaseUrl: "https://api.anthropic.com",
-        anthropicApiKey: "",
-        ollamaBaseUrl: "http://127.0.0.1:11434",
-        agentsRoot: "Agents",
-        skillsRoot: "Skills",
-        commandsRoot: "Commands",
-        conversationsRoot: "AI/Conversations",
-        memoryRoot: "AI/Memory",
-        enableDebugLogging: false,
-        enableIndexingOnStartup: true
-      }
+      createTestSettings()
     );
 
     expect(reply.text).toContain("Final answer after tool output");
@@ -620,25 +595,7 @@ describe("ChatOrchestrator", () => {
           promptContext: "Note content"
         }
       },
-      {
-        defaultProvider: "openrouter",
-        defaultAgent: "ask",
-        defaultChatModel: "openai/gpt-5.4",
-        openRouterBaseUrl: "https://openrouter.ai/api/v1",
-        openRouterApiKey: "",
-        openAiBaseUrl: "https://api.openai.com/v1",
-        openAiApiKey: "",
-        anthropicBaseUrl: "https://api.anthropic.com",
-        anthropicApiKey: "",
-        ollamaBaseUrl: "http://127.0.0.1:11434",
-        agentsRoot: "Agents",
-        skillsRoot: "Skills",
-        commandsRoot: "Commands",
-        conversationsRoot: "AI/Conversations",
-        memoryRoot: "AI/Memory",
-        enableDebugLogging: false,
-        enableIndexingOnStartup: true
-      }
+      createTestSettings()
     );
 
     expect(reply.text).toContain("requires explicit approval");

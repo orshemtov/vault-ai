@@ -1,12 +1,13 @@
 import {
-  getFirstGenerationModelForProvider,
-  listGenerationModels
-} from "@providers/provider-selection";
+  DEFAULT_AGENT,
+  DEFAULT_PROVIDER_URLS,
+  DEFAULT_VAULT_ROOTS,
+  SUPPORTED_PROVIDERS
+} from "@app/defaults";
+import { getFirstGenerationModelForProvider } from "@providers/provider-selection";
 import type { VaultAiPlugin } from "@app/plugin";
 import type { ProviderId } from "@app/settings";
 import { PluginSettingTab, Setting } from "obsidian";
-
-const MODEL_KEY_SEPARATOR = "::";
 
 export class VaultAiPluginSettingTab extends PluginSettingTab {
   constructor(private readonly plugin: VaultAiPlugin) {
@@ -19,38 +20,38 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
 
     containerEl.createEl("h2", { text: "Vault AI" });
 
-    const defaultsSection = createSection(containerEl, "General");
-    const modelsSection = createSection(containerEl, "Models");
+    const generalSection = createSection(containerEl, "General");
+    const configurationSection = createSection(containerEl, "Configuration");
     const vaultSection = createSection(containerEl, "Vault");
-    const behaviorSection = createSection(containerEl, "Behavior");
     const advancedSection = createSection(containerEl, "Advanced");
 
     const currentProviderId = this.plugin.settings.defaultProvider;
 
-    const catalogs = this.plugin.getProviderCatalogSnapshots([
-      "openrouter",
-      "ollama",
-      "openai",
-      "anthropic"
-    ]);
-    const modelOptions = listGenerationModels(catalogs).map((model) => ({
-      providerId: model.providerId,
-      modelId: model.modelId,
-      key: `${model.providerId}${MODEL_KEY_SEPARATOR}${model.modelId}`,
-      label: `${model.providerId}/${model.displayName}`
-    }));
-    const selectedProviderModelOptions = modelOptions.filter(
-      (option) => option.providerId === currentProviderId
-    );
-    const resolvedProviderModel =
-      selectedProviderModelOptions.find(
-        (option) => option.modelId === this.plugin.settings.defaultChatModel
-      ) ??
-      selectedProviderModelOptions[0] ??
-      null;
-    const currentModelKey = `${this.plugin.settings.defaultProvider}${MODEL_KEY_SEPARATOR}${this.plugin.settings.defaultChatModel}`;
+    const catalogs =
+      this.plugin.getProviderCatalogSnapshots(SUPPORTED_PROVIDERS);
+    new Setting(generalSection).setName("Provider").addDropdown((dropdown) => {
+      for (const providerId of SUPPORTED_PROVIDERS) {
+        dropdown.addOption(providerId, providerId);
+      }
 
-    new Setting(defaultsSection)
+      dropdown.setValue(currentProviderId).onChange(async (value) => {
+        const providerId = value as ProviderId;
+        const firstProviderModel = getFirstGenerationModelForProvider(
+          catalogs,
+          providerId
+        );
+        await this.plugin.updateSettings({
+          defaultProvider: providerId,
+          defaultChatModel:
+            firstProviderModel?.modelId ?? this.plugin.settings.defaultChatModel
+        });
+        this.display();
+      });
+    });
+
+    renderProviderSettings(generalSection, this.plugin, currentProviderId);
+
+    new Setting(configurationSection)
       .setName("Default agent")
       .addDropdown((dropdown) => {
         const availableAgents = ["ask", "edit"];
@@ -62,64 +63,15 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.defaultAgent)
           .onChange(async (value) => {
             await this.plugin.updateSettings({
-              defaultAgent: value.trim() || "ask"
+              defaultAgent: value.trim() || DEFAULT_AGENT
             });
           });
       });
 
-    new Setting(modelsSection).setName("Provider").addDropdown((dropdown) => {
-      dropdown
-        .addOption("openrouter", "openrouter")
-        .addOption("ollama", "ollama")
-        .addOption("openai", "openai")
-        .addOption("anthropic", "anthropic")
-        .setValue(currentProviderId)
-        .onChange(async (value) => {
-          const providerId = value as ProviderId;
-          const firstProviderModel = getFirstGenerationModelForProvider(
-            catalogs,
-            providerId
-          );
-          await this.plugin.updateSettings({
-            defaultProvider: providerId,
-            defaultChatModel:
-              firstProviderModel?.modelId ??
-              this.plugin.settings.defaultChatModel
-          });
-          this.display();
-        });
-    });
-
-    new Setting(modelsSection).setName("Model").addDropdown((dropdown) => {
-      if (selectedProviderModelOptions.length > 0) {
-        for (const option of selectedProviderModelOptions) {
-          dropdown.addOption(option.key, option.label);
-        }
-      } else {
-        dropdown.addOption(currentModelKey, currentModelKey);
-      }
-
-      dropdown
-        .setValue(resolvedProviderModel?.key ?? currentModelKey)
-        .onChange(async (value) => {
-          const [, modelId] = value.split(MODEL_KEY_SEPARATOR) as [
-            ProviderId,
-            string
-          ];
-
-          await this.plugin.updateSettings({
-            defaultProvider: currentProviderId,
-            defaultChatModel: modelId
-          });
-        });
-    });
-
-    renderProviderSettings(modelsSection, this.plugin, currentProviderId);
-
     new Setting(vaultSection).setName("Agents root").addText((text) => {
       text.setValue(this.plugin.settings.agentsRoot).onChange(async (value) => {
         await this.plugin.updateSettings({
-          agentsRoot: value.trim() || "Agents"
+          agentsRoot: value.trim() || DEFAULT_VAULT_ROOTS.agentsRoot
         });
       });
     });
@@ -127,7 +79,7 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
     new Setting(vaultSection).setName("Skills root").addText((text) => {
       text.setValue(this.plugin.settings.skillsRoot).onChange(async (value) => {
         await this.plugin.updateSettings({
-          skillsRoot: value.trim() || "Skills"
+          skillsRoot: value.trim() || DEFAULT_VAULT_ROOTS.skillsRoot
         });
       });
     });
@@ -137,7 +89,7 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.commandsRoot)
         .onChange(async (value) => {
           await this.plugin.updateSettings({
-            commandsRoot: value.trim() || "Commands"
+            commandsRoot: value.trim() || DEFAULT_VAULT_ROOTS.commandsRoot
           });
         });
     });
@@ -147,7 +99,8 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.conversationsRoot)
         .onChange(async (value) => {
           await this.plugin.updateSettings({
-            conversationsRoot: value.trim() || "AI/Conversations"
+            conversationsRoot:
+              value.trim() || DEFAULT_VAULT_ROOTS.conversationsRoot
           });
         });
     });
@@ -155,12 +108,12 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
     new Setting(vaultSection).setName("Memory root").addText((text) => {
       text.setValue(this.plugin.settings.memoryRoot).onChange(async (value) => {
         await this.plugin.updateSettings({
-          memoryRoot: value.trim() || "AI/Memory"
+          memoryRoot: value.trim() || DEFAULT_VAULT_ROOTS.memoryRoot
         });
       });
     });
 
-    new Setting(behaviorSection)
+    new Setting(advancedSection)
       .setName("Enable indexing on startup")
       .addToggle((toggle) => {
         toggle
@@ -205,7 +158,8 @@ function renderProviderSettings(
         .setValue(plugin.settings.openRouterBaseUrl)
         .onChange(async (value) => {
           await plugin.updateSettings({
-            openRouterBaseUrl: value.trim() || plugin.settings.openRouterBaseUrl
+            openRouterBaseUrl:
+              value.trim() || DEFAULT_PROVIDER_URLS.openRouterBaseUrl
           });
         });
     });
@@ -228,7 +182,7 @@ function renderProviderSettings(
     new Setting(providerSection).setName("Base URL").addText((text) => {
       text.setValue(plugin.settings.ollamaBaseUrl).onChange(async (value) => {
         await plugin.updateSettings({
-          ollamaBaseUrl: value.trim() || plugin.settings.ollamaBaseUrl
+          ollamaBaseUrl: value.trim() || DEFAULT_PROVIDER_URLS.ollamaBaseUrl
         });
       });
     });
@@ -239,7 +193,7 @@ function renderProviderSettings(
     new Setting(providerSection).setName("Base URL").addText((text) => {
       text.setValue(plugin.settings.openAiBaseUrl).onChange(async (value) => {
         await plugin.updateSettings({
-          openAiBaseUrl: value.trim() || plugin.settings.openAiBaseUrl
+          openAiBaseUrl: value.trim() || DEFAULT_PROVIDER_URLS.openAiBaseUrl
         });
       });
     });
@@ -261,7 +215,7 @@ function renderProviderSettings(
   new Setting(providerSection).setName("Base URL").addText((text) => {
     text.setValue(plugin.settings.anthropicBaseUrl).onChange(async (value) => {
       await plugin.updateSettings({
-        anthropicBaseUrl: value.trim() || plugin.settings.anthropicBaseUrl
+        anthropicBaseUrl: value.trim() || DEFAULT_PROVIDER_URLS.anthropicBaseUrl
       });
     });
   });

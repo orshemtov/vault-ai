@@ -198,11 +198,11 @@
   border-radius: 8px;
   color: var(--text-normal);
   cursor: pointer;
-  font-family: var(--font-monospace);
   font-size: 0.79rem;
   line-height: 1.45;
   padding: 7px 10px;
   text-align: left;
+  width: 100%;
 }
 
 .vault-ai__source-link:hover {
@@ -211,6 +211,19 @@
     var(--interactive-accent) 10%,
     var(--background-secondary)
   );
+}
+
+.vault-ai__source-link-title {
+  display: block;
+  font-weight: 600;
+}
+
+.vault-ai__source-link-detail {
+  color: var(--text-muted);
+  display: block;
+  font-family: var(--font-monospace);
+  font-size: 0.72rem;
+  margin-top: 2px;
 }
 
 .vault-ai__composer-shell {
@@ -462,9 +475,7 @@
     width: 100%;
   }
 
-  .vault-ai__header-button:not(
-    .vault-ai__header-button--square
-  ) {
+  .vault-ai__header-button:not(.vault-ai__header-button--square) {
     flex: 1;
   }
 

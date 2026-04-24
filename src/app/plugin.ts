@@ -279,9 +279,9 @@ export class VaultAiPlugin extends Plugin {
   }
 
   getProviderCatalogSnapshots(
-    providerIds: ProviderId[]
+    providerIds: readonly ProviderId[]
   ): ProviderCatalogSnapshot[] {
-    return this.providerCatalogService.getAllSnapshots(providerIds);
+    return this.providerCatalogService.getAllSnapshots([...providerIds]);
   }
 
   async refreshProviderCatalogs(): Promise<ProviderCatalogSnapshot[]> {

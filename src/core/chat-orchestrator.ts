@@ -103,6 +103,7 @@ export class ChatOrchestrator {
         return {
           text: followUp.text,
           citations: createCitations(
+            followUp.text,
             input.contextSummary,
             toolCall,
             toolResult
@@ -121,6 +122,7 @@ export class ChatOrchestrator {
             buildBlockedToolExplanation(toolResult)
           ),
           citations: createCitations(
+            baseText,
             input.contextSummary,
             toolCall,
             toolResult
@@ -131,14 +133,19 @@ export class ChatOrchestrator {
 
       return {
         text: appendToolResult(baseText, toolResult.message),
-        citations: createCitations(input.contextSummary, toolCall, toolResult),
+        citations: createCitations(
+          baseText,
+          input.contextSummary,
+          toolCall,
+          toolResult
+        ),
         toolEvents: [toolResult]
       };
     }
 
     return {
       text: response.text,
-      citations: createCitations(input.contextSummary)
+      citations: createCitations(response.text, input.contextSummary)
     };
   }
 
@@ -204,6 +211,7 @@ export class ChatOrchestrator {
         return {
           text: followUp.text,
           citations: createCitations(
+            followUp.text,
             input.contextSummary,
             toolCall,
             toolResult
@@ -222,6 +230,7 @@ export class ChatOrchestrator {
             buildBlockedToolExplanation(toolResult)
           ),
           citations: createCitations(
+            baseText,
             input.contextSummary,
             toolCall,
             toolResult
@@ -232,14 +241,19 @@ export class ChatOrchestrator {
 
       return {
         text: appendToolResult(baseText, toolResult.message),
-        citations: createCitations(input.contextSummary, toolCall, toolResult),
+        citations: createCitations(
+          baseText,
+          input.contextSummary,
+          toolCall,
+          toolResult
+        ),
         toolEvents: [toolResult]
       };
     }
 
     return {
       text: response.text,
-      citations: createCitations(input.contextSummary)
+      citations: createCitations(response.text, input.contextSummary)
     };
   }
 
@@ -353,24 +367,41 @@ export function buildUserPrompt(
 }
 
 function createCitations(
+  responseText: string,
   contextSummary: ResolvedContextSummary,
   toolCall?: ToolCallInput,
   toolResult?: ToolRunResult
 ): AssistantResponse["citations"] {
   const citations: AssistantResponse["citations"] = [];
+  const normalizedResponse = normalizeCitationText(responseText);
 
   for (const path of contextSummary.explicitNotePaths ?? []) {
-    citations.push({ path, reason: "explicit" });
+    if (responseSupportsPath(normalizedResponse, path)) {
+      citations.push({ path, reason: "explicit" });
+    }
   }
 
   for (const path of contextSummary.retrievalNotePaths ?? []) {
-    if (!citations.some((citation) => citation.path === path)) {
+    const retrievalNote = contextSummary.retrievalNotes?.find(
+      (note) => note.path === path
+    );
+    if (
+      responseSupportsRetrievedNote(
+        normalizedResponse,
+        path,
+        retrievalNote?.snippet
+      ) &&
+      !citations.some((citation) => citation.path === path)
+    ) {
       citations.push({ path, reason: "retrieved" });
     }
   }
 
   for (const path of contextSummary.contextNotePaths ?? []) {
-    if (!citations.some((citation) => citation.path === path)) {
+    if (
+      responseSupportsPath(normalizedResponse, path) &&
+      !citations.some((citation) => citation.path === path)
+    ) {
       citations.push({ path, reason: "context" });
     }
   }
@@ -381,6 +412,61 @@ function createCitations(
   }
 
   return citations;
+}
+
+function normalizeCitationText(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9/ ._-]+/g, " ");
+}
+
+function responseSupportsPath(responseText: string, path: string): boolean {
+  const normalizedPath = path.toLowerCase();
+  const basename =
+    path.split("/").pop()?.replace(/\.md$/i, "").toLowerCase() ??
+    normalizedPath;
+  const basenameTokens = basename
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3);
+
+  if (
+    responseText.includes(normalizedPath) ||
+    responseText.includes(basename)
+  ) {
+    return true;
+  }
+
+  if (basenameTokens.length === 0) {
+    return false;
+  }
+
+  return basenameTokens.every((token) => responseText.includes(token));
+}
+
+function responseSupportsRetrievedNote(
+  responseText: string,
+  path: string,
+  snippet?: string
+): boolean {
+  if (responseSupportsPath(responseText, path)) {
+    return true;
+  }
+
+  if (!snippet) {
+    return false;
+  }
+
+  const snippetTokens = normalizeCitationText(snippet)
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 4);
+  if (snippetTokens.length === 0) {
+    return false;
+  }
+
+  const overlapCount = snippetTokens.filter((token) =>
+    responseText.includes(token)
+  ).length;
+  return overlapCount >= Math.min(3, snippetTokens.length);
 }
 
 function extractToolPath(

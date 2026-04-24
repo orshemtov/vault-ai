@@ -14,10 +14,10 @@ export function openAgentMenu(options: {
 }
 
 type ModelOption = {
-  key: string;
   providerId: string;
   modelId: string;
   label: string;
+  shortLabel?: string;
 };
 
 export function openModelSuggest(options: {
@@ -64,7 +64,7 @@ class ModelSuggestModal extends FuzzySuggestModal<ModelOption> {
   }
 
   getItemText(item: ModelOption): string {
-    return item.label;
+    return item.shortLabel ?? item.label;
   }
 
   override renderSuggestion(

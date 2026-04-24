@@ -2,7 +2,9 @@ import type { ProviderCatalogSnapshot } from "./provider-runtime";
 import {
   findExactGenerationModel,
   getFirstGenerationModelForProvider,
-  listGenerationModels
+  getGenerationModelsForProvider,
+  listGenerationModels,
+  resolveProviderScopedModel
 } from "./provider-selection";
 
 const catalogs: ProviderCatalogSnapshot[] = [
@@ -96,6 +98,23 @@ describe("provider selection", () => {
 
   it("returns the first generation model for a provider", () => {
     expect(getFirstGenerationModelForProvider(catalogs, "openai")).toEqual({
+      providerId: "openai",
+      modelId: "gpt-5.4"
+    });
+  });
+
+  it("filters generation models by provider", () => {
+    expect(
+      getGenerationModelsForProvider(catalogs, "openai").map(
+        (model) => model.modelId
+      )
+    ).toEqual(["gpt-5.4"]);
+  });
+
+  it("falls back to the provider's own first model for stale cross-provider settings", () => {
+    expect(
+      resolveProviderScopedModel(catalogs, "openai", "openai/gpt-5.4")
+    ).toEqual({
       providerId: "openai",
       modelId: "gpt-5.4"
     });
