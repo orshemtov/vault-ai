@@ -2,7 +2,7 @@
 
 ## Goal
 
-Learn from successful adjacent Obsidian AI projects so we can copy what works, avoid common mistakes, and design a plugin that feels native, safe, and genuinely useful.
+Learn from successful adjacent vault AI projects so we can copy what works, avoid common mistakes, and design a plugin that feels native, safe, and genuinely useful.
 
 ## Projects Reviewed
 
@@ -215,7 +215,7 @@ What we should learn:
 
 ## Market Conclusions
 
-The strongest open-source Obsidian AI projects usually do one or two of these well:
+The strongest open-source vault AI projects usually do one or two of these well:
 
 - chat with notes
 - text generation/editing

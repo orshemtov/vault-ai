@@ -44,7 +44,7 @@ Once approved in the Obsidian marketplace:
 2. Create this folder inside your vault:
 
 ```text
-<vault>/.obsidian/plugins/vault-ai/
+<vault>/.obsidian/plugins/vault-ai-assistant/
 ```
 
 3. Copy the release files into that folder

@@ -1,4 +1,4 @@
-export const PLUGIN_ID = "vault-ai";
+export const PLUGIN_ID = "vault-ai-assistant";
 export const VIEW_TYPE_ASSISTANT = "vault-ai-assistant-view";
 export const VIEW_TITLE_ASSISTANT = "Vault AI";
 export const VIEW_ICON_ASSISTANT = "vault-ai-assistant";
