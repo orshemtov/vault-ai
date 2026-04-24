@@ -29,6 +29,7 @@ export class ContextResolver {
         title: "No active note",
         description: "Open a Markdown note to use current-note context.",
         notePaths: [],
+        contextNotePaths: [],
         promptContext: "No active note is available."
       };
     }
@@ -40,6 +41,7 @@ export class ContextResolver {
       title: file.basename,
       description: `Using the active note at ${file.path}.`,
       notePaths: [file.path],
+      contextNotePaths: [file.path],
       promptContext: createPromptContext([{ path: file.path, content }])
     };
   }
@@ -56,6 +58,7 @@ export class ContextResolver {
         title: "No editable note",
         description: "Open a Markdown note to use selection context.",
         notePaths: [],
+        contextNotePaths: [],
         promptContext: "No editable Markdown note is available."
       };
     }
@@ -67,6 +70,7 @@ export class ContextResolver {
         title: file.basename,
         description: `No text is selected in ${file.path}.`,
         notePaths: [file.path],
+        contextNotePaths: [file.path],
         promptContext: createPromptContext([{ path: file.path, content }])
       };
     }
@@ -76,6 +80,7 @@ export class ContextResolver {
       title: `${file.basename} selection`,
       description: `Using the current editor selection in ${file.path}.`,
       notePaths: [file.path],
+      contextNotePaths: [file.path],
       selectionPreview: truncateSelection(selection),
       promptContext: [`Selection from ${file.path}:`, selection].join("\n\n")
     };
@@ -97,6 +102,7 @@ export class ContextResolver {
       title: "Whole vault",
       description: `Using the vault-wide note set. ${files.length} Markdown notes are currently available.`,
       notePaths,
+      contextNotePaths: notePaths,
       promptContext: createPromptContext(noteEntries)
     };
   }

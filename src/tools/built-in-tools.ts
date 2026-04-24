@@ -2,6 +2,51 @@ import type { ToolDefinition } from "./tool-types";
 
 export const BUILT_IN_TOOLS: ToolDefinition[] = [
   {
+    id: "get-current-date",
+    name: "Get Current Date",
+    description: "Read the current local date, time, and timezone.",
+    family: "time",
+    noteAction: null,
+    requiresApproval: false,
+    source: "built-in"
+  },
+  {
+    id: "list-memories",
+    name: "List Memories",
+    description: "List saved long-term memory entries.",
+    family: "memory",
+    noteAction: null,
+    requiresApproval: false,
+    source: "built-in"
+  },
+  {
+    id: "save-memory",
+    name: "Save Memory",
+    description: "Save a long-term memory entry.",
+    family: "memory",
+    noteAction: null,
+    requiresApproval: false,
+    source: "built-in"
+  },
+  {
+    id: "update-memory",
+    name: "Update Memory",
+    description: "Update an existing long-term memory entry.",
+    family: "memory",
+    noteAction: null,
+    requiresApproval: false,
+    source: "built-in"
+  },
+  {
+    id: "delete-memory",
+    name: "Delete Memory",
+    description: "Delete an existing long-term memory entry.",
+    family: "memory",
+    noteAction: null,
+    requiresApproval: true,
+    source: "built-in"
+  },
+  {
     id: "get-active-note",
     name: "Get Active Note",
     description: "Read the active note in the current workspace.",

@@ -22,6 +22,7 @@ export const pluginSettingsSchema = z.object({
   skillsRoot: z.string().min(1),
   commandsRoot: z.string().min(1),
   conversationsRoot: z.string().min(1),
+  memoryRoot: z.string().min(1),
   enableDebugLogging: z.boolean(),
   enableIndexingOnStartup: z.boolean()
 });
@@ -44,6 +45,7 @@ export const DEFAULT_SETTINGS: VaultAiPluginSettings = {
   skillsRoot: "Skills",
   commandsRoot: "Commands",
   conversationsRoot: "AI/Conversations",
+  memoryRoot: "AI/Memory",
   enableDebugLogging: false,
   enableIndexingOnStartup: true
 };

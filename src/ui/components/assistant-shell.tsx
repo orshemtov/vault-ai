@@ -9,8 +9,17 @@ import {
   getMentionSuggestions
 } from "@core/turn-parser";
 import type { ProviderCatalogSnapshot } from "@providers/provider-runtime";
+import {
+  findExactGenerationModel,
+  getFirstGenerationModelForProvider,
+  listGenerationModels
+} from "@providers/provider-selection";
 import type { PersistedConversation } from "@storage/conversation-types";
 import { createMessage, type AssistantMessage } from "@ui/assistant-state";
+import {
+  findLastSuccessfulAssistantMessage,
+  proposeLongTermMemories
+} from "@app/memory-analysis";
 import {
   openAgentMenu,
   openConversationSuggest,
@@ -155,26 +164,39 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
     [catalogs, selectedProvider]
   );
   const selectedProviderStatus = selectedCatalog?.status ?? "idle";
-  const availableModels = selectedCatalog?.models ?? [];
+  const availableModels =
+    selectedCatalog?.models.filter((model) => model.supportsGeneration) ?? [];
   const allModelOptions = useMemo(
     () =>
-      catalogs.flatMap((catalog) =>
-        catalog.models.map((model) => ({
-          key: `${catalog.providerId}${MODEL_KEY_SEPARATOR}${model.modelId}`,
-          providerId: catalog.providerId,
-          modelId: model.modelId,
-          label: `${catalog.providerId}/${model.displayName}`,
-          shortLabel: model.displayName
-        }))
-      ),
+      listGenerationModels(catalogs).map((model) => ({
+        key: `${model.providerId}${MODEL_KEY_SEPARATOR}${model.modelId}`,
+        providerId: model.providerId,
+        modelId: model.modelId,
+        label: `${model.providerId}/${model.displayName}`,
+        shortLabel: model.displayName
+      })),
     [catalogs]
   );
   const selectedModelKey = `${selectedProvider}${MODEL_KEY_SEPARATOR}${selectedModel}`;
+  const resolvedSelection = useMemo(
+    () =>
+      findExactGenerationModel(catalogs, {
+        providerId: selectedProvider,
+        modelId: selectedModel
+      }),
+    [catalogs, selectedModel, selectedProvider]
+  );
   const selectedModelOption =
-    allModelOptions.find((option) => option.key === selectedModelKey) ?? null;
-  const resolvedProviderId =
-    selectedModelOption?.providerId ?? selectedProvider;
-  const resolvedModelId = selectedModelOption?.modelId ?? selectedModel;
+    allModelOptions.find((option) => option.key === selectedModelKey) ??
+    (resolvedSelection
+      ? (allModelOptions.find(
+          (option) =>
+            option.providerId === resolvedSelection.providerId &&
+            option.modelId === resolvedSelection.modelId
+        ) ?? null)
+      : null);
+  const resolvedProviderId = resolvedSelection?.providerId ?? selectedProvider;
+  const resolvedModelId = resolvedSelection?.modelId ?? selectedModel;
   const commandSuggestions = useMemo(
     () => getCommandSuggestions(prompt, commands),
     [commands, prompt]
@@ -259,9 +281,15 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
     );
 
     if (!hasSelectedModel) {
-      setSelectedModel(availableModels[0].modelId);
+      const firstGenerationModel = getFirstGenerationModelForProvider(
+        catalogs,
+        selectedProvider
+      );
+      if (firstGenerationModel) {
+        setSelectedModel(firstGenerationModel.modelId);
+      }
     }
-  }, [availableModels, selectedModel]);
+  }, [availableModels, catalogs, selectedModel, selectedProvider]);
 
   useEffect(() => {
     let isMounted = true;
@@ -407,9 +435,14 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
 
   const persistConversation = async (
     nextMessages: AssistantMessage[],
-    override?: { title?: string; existingPath?: string | null }
+    override?: {
+      title?: string;
+      existingPath?: string | null;
+      contextSummary?: ResolvedContextSummary;
+    }
   ) => {
-    if (!selectedAgent || !contextSummary) {
+    const nextContextSummary = override?.contextSummary ?? contextSummary;
+    if (!selectedAgent || !nextContextSummary) {
       return null;
     }
 
@@ -420,7 +453,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
         providerId: resolvedProviderId,
         modelId: resolvedModelId,
         contextScope: "current-note",
-        referencedNotes: contextSummary.notePaths,
+        referencedNotes: nextContextSummary.notePaths,
         messages: nextMessages.map(toStoredConversationMessage)
       },
       override?.existingPath ?? conversationPath
@@ -508,6 +541,10 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
       return;
     }
 
+    const freshContextSummary =
+      await plugin.resolveContextSummary("current-note");
+    setContextSummary(freshContextSummary);
+
     const userMessage = createMessage("user", trimmedPrompt);
     const pendingAssistantMessage = createMessage(
       "assistant",
@@ -539,7 +576,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
           providerId: resolvedProviderId,
           modelId: resolvedModelId,
           prompt: trimmedPrompt,
-          contextSummary,
+          contextSummary: freshContextSummary,
           recentMessages
         },
         {
@@ -577,7 +614,18 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
       );
 
       setMessages(nextMessages);
-      const persistedConversation = await persistConversation(nextMessages);
+      const persistedConversation = await persistConversation(nextMessages, {
+        contextSummary: freshContextSummary
+      });
+
+      if (persistedConversation) {
+        await maybePersistLongTermMemory(
+          trimmedPrompt,
+          nextMessages,
+          freshContextSummary,
+          persistedConversation
+        );
+      }
 
       if (persistedConversation && messages.length === 0) {
         void maybeGenerateConversationTitle(
@@ -592,7 +640,9 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
         );
         setMessages(nextMessages);
         if (nextMessages.length > 0) {
-          await persistConversation(nextMessages);
+          await persistConversation(nextMessages, {
+            contextSummary: freshContextSummary
+          });
         }
         return;
       }
@@ -610,7 +660,9 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
       );
 
       setMessages(nextMessages);
-      await persistConversation(nextMessages);
+      await persistConversation(nextMessages, {
+        contextSummary: freshContextSummary
+      });
     } finally {
       activeAbortControllerRef.current = null;
       setIsSending(false);
@@ -620,6 +672,34 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
 
   const cancelActiveRequest = () => {
     activeAbortControllerRef.current?.abort();
+  };
+
+  const maybePersistLongTermMemory = async (
+    userPrompt: string,
+    nextMessages: AssistantMessage[],
+    nextContextSummary: ResolvedContextSummary,
+    persistedConversation: PersistedConversation
+  ) => {
+    const assistantMessage = findLastSuccessfulAssistantMessage(nextMessages);
+    if (!assistantMessage) {
+      return;
+    }
+
+    const proposedMemories = proposeLongTermMemories({
+      userPrompt,
+      assistantReply: assistantMessage.text,
+      contextNotePaths: nextContextSummary.notePaths
+    });
+
+    await Promise.all(
+      proposedMemories.map((memory) =>
+        plugin.saveLongTermMemory({
+          ...memory,
+          sourceConversationPath: persistedConversation.path,
+          tags: [...new Set([selectedAgentId, ...memory.tags])]
+        })
+      )
+    );
   };
 
   const copyMessage = async (message: AssistantMessage) => {
@@ -704,9 +784,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
       <header className="vault-ai__header">
         <div className="vault-ai__title-stack">
           <h1 className="vault-ai__title">Vault AI</h1>
-          <span className="vault-ai__subtitle">
-            {conversationTitle}
-          </span>
+          <span className="vault-ai__subtitle">{conversationTitle}</span>
         </div>
         <div className="vault-ai__header-actions">
           <button
@@ -995,11 +1073,7 @@ function toStoredConversationMessage(
 
 function GearIcon() {
   return (
-    <svg
-      aria-hidden="true"
-      className="vault-ai__gear-icon"
-      viewBox="0 0 24 24"
-    >
+    <svg aria-hidden="true" className="vault-ai__gear-icon" viewBox="0 0 24 24">
       <path
         d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.06 7.06 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.89 2h-3.78a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.72 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.07.63-.07.94s.03.63.07.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.39 1.05.71 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.78a.5.5 0 0 0 .49-.42l.36-2.54c.58-.23 1.13-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"
         fill="currentColor"
@@ -1010,11 +1084,7 @@ function GearIcon() {
 
 function CopyIcon() {
   return (
-    <svg
-      aria-hidden="true"
-      className="vault-ai__copy-icon"
-      viewBox="0 0 24 24"
-    >
+    <svg aria-hidden="true" className="vault-ai__copy-icon" viewBox="0 0 24 24">
       <path
         d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z"
         fill="currentColor"
@@ -1066,9 +1136,7 @@ function MessageMarkdown({ plugin, text }: MessageMarkdownProps) {
     };
   }, [plugin, text]);
 
-  return (
-    <div className="vault-ai__message-markdown" ref={containerRef} />
-  );
+  return <div className="vault-ai__message-markdown" ref={containerRef} />;
 }
 
 function replaceVaultPathsWithLinks(text: string): string {

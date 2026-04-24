@@ -8,7 +8,12 @@ const accessModeSchema = z.enum([
   "include",
   "exclude"
 ]);
-const providerIdSchema = z.enum(["openrouter", "ollama"]);
+const providerIdSchema = z.enum([
+  "openrouter",
+  "ollama",
+  "openai",
+  "anthropic"
+]);
 const agentModeSchema = z.enum(["primary", "subagent"]);
 
 const agentFrontmatterSchema = z.object({

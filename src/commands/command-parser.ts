@@ -1,3 +1,4 @@
+import { providerIdSchema } from "@app/settings";
 import matter from "gray-matter";
 import { z } from "zod";
 import type {
@@ -8,6 +9,7 @@ import type {
 const commandFrontmatterSchema = z.object({
   description: z.string().min(1),
   agent: z.string().min(1).optional(),
+  provider: providerIdSchema.optional(),
   model: z.string().min(1).optional()
 });
 
@@ -24,6 +26,7 @@ export function parseCommandMarkdown(
     description: frontmatter.description,
     template: parsed.content.trim(),
     agent: frontmatter.agent,
+    provider: frontmatter.provider,
     model: frontmatter.model,
     source: "vault",
     path

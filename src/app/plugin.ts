@@ -4,6 +4,7 @@ import {
   type VaultAiPluginSettings,
   type ProviderId
 } from "@app/settings";
+import { buildCrossChatMemory } from "@app/cross-chat-memory";
 import { AgentRegistry } from "@agents/agent-registry";
 import type { AgentDefinition } from "@agents/agent-types";
 import { CommandsRegistry } from "../commands/commands-registry";
@@ -30,6 +31,7 @@ import { OllamaAdapter } from "@providers/ollama/ollama-adapter";
 import { ProviderCatalogService } from "@providers/provider-catalog-service";
 import { ProviderRegistry } from "@providers/provider-registry";
 import type { ProviderCatalogSnapshot } from "@providers/provider-runtime";
+import { resolveRuntimeModelSelection } from "@providers/runtime-model-selection";
 import {
   RetrievalService,
   type RetrievedNote
@@ -38,11 +40,13 @@ import { SchedulerService } from "@scheduler/scheduler-service";
 import { SkillsRegistry } from "@skills/skills-registry";
 import type { SkillDefinition } from "@skills/skill-types";
 import { ConversationStorage } from "@storage/conversation-storage";
+import { MemoryStorage } from "@storage/memory-storage";
 import { PluginStorage } from "@storage/plugin-storage";
 import type {
   PersistedConversation,
   SaveConversationInput
 } from "@storage/conversation-types";
+import type { PersistedMemoryEntry } from "@storage/memory-types";
 import { ToolRuntime } from "@tools/tool-runtime";
 import { ToolRegistry } from "@tools/tool-registry";
 import type { ToolDefinition } from "@tools/tool-types";
@@ -80,6 +84,7 @@ export class VaultAiPlugin extends Plugin {
   );
   private readonly contextResolver = new ContextResolver(this.app);
   private conversationStorage: ConversationStorage | null = null;
+  private memoryStorage: MemoryStorage | null = null;
   private retrievalService: RetrievalService | null = null;
   private schedulerService: SchedulerService | null = null;
   private skillsRegistry: SkillsRegistry | null = null;
@@ -126,6 +131,7 @@ export class VaultAiPlugin extends Plugin {
       this.app,
       this.settings.conversationsRoot
     );
+    this.memoryStorage = new MemoryStorage(this.app, this.settings.memoryRoot);
     void this.refreshProviderCatalogs();
     this.refreshAssistantViews();
   }
@@ -305,6 +311,23 @@ export class VaultAiPlugin extends Plugin {
     const nextAgent = parsedTurn.agentId
       ? await this.getAgentById(parsedTurn.agentId)
       : input.agent;
+    const runtimeAgent = nextAgent ?? input.agent;
+    const runtimeSelection = resolveRuntimeModelSelection(
+      this.getProviderCatalogSnapshots([
+        "openrouter",
+        "ollama",
+        "openai",
+        "anthropic"
+      ]),
+      input.providerId,
+      input.modelId,
+      parsedTurn.command
+    );
+    const [allowedTools, allowedSkills, crossChatMemory] = await Promise.all([
+      this.listAllowedTools(runtimeAgent.id),
+      this.listAllowedSkills(runtimeAgent.id),
+      this.loadCrossChatMemory(parsedTurn.prompt, input.contextSummary)
+    ]);
     const explicitNotePaths = await this.resolveMentionedNotePaths(
       parsedTurn.noteMentions
     );
@@ -320,10 +343,14 @@ export class VaultAiPlugin extends Plugin {
     return this.chatOrchestrator.generateReply(
       {
         ...input,
-        agent: nextAgent ?? input.agent,
-        modelId: parsedTurn.command?.model ?? input.modelId,
+        agent: runtimeAgent,
+        providerId: runtimeSelection.providerId,
+        modelId: runtimeSelection.modelId,
         prompt: parsedTurn.prompt,
-        contextSummary
+        contextSummary,
+        allowedTools,
+        allowedSkills,
+        crossChatMemory
       },
       this.settings
     );
@@ -344,6 +371,23 @@ export class VaultAiPlugin extends Plugin {
     const nextAgent = parsedTurn.agentId
       ? await this.getAgentById(parsedTurn.agentId)
       : input.agent;
+    const runtimeAgent = nextAgent ?? input.agent;
+    const runtimeSelection = resolveRuntimeModelSelection(
+      this.getProviderCatalogSnapshots([
+        "openrouter",
+        "ollama",
+        "openai",
+        "anthropic"
+      ]),
+      input.providerId,
+      input.modelId,
+      parsedTurn.command
+    );
+    const [allowedTools, allowedSkills, crossChatMemory] = await Promise.all([
+      this.listAllowedTools(runtimeAgent.id),
+      this.listAllowedSkills(runtimeAgent.id),
+      this.loadCrossChatMemory(parsedTurn.prompt, input.contextSummary)
+    ]);
     const explicitNotePaths = await this.resolveMentionedNotePaths(
       parsedTurn.noteMentions
     );
@@ -359,11 +403,15 @@ export class VaultAiPlugin extends Plugin {
     return this.chatOrchestrator.streamReply(
       {
         ...input,
-        agent: nextAgent ?? input.agent,
-        modelId: parsedTurn.command?.model ?? input.modelId,
+        agent: runtimeAgent,
+        providerId: runtimeSelection.providerId,
+        modelId: runtimeSelection.modelId,
         prompt: parsedTurn.prompt,
         contextSummary,
-        recentMessages: input.recentMessages
+        recentMessages: input.recentMessages,
+        allowedTools,
+        allowedSkills,
+        crossChatMemory
       },
       this.settings,
       callbacks,
@@ -425,6 +473,7 @@ export class VaultAiPlugin extends Plugin {
       this.app,
       this.settings.conversationsRoot
     );
+    this.memoryStorage = new MemoryStorage(this.app, this.settings.memoryRoot);
   }
 
   private async resolvePromptContext(
@@ -481,6 +530,7 @@ export class VaultAiPlugin extends Plugin {
       ...baseContext,
       description: descriptionParts.join(" "),
       notePaths: uniquePaths,
+      contextNotePaths: baseContext.contextNotePaths ?? baseContext.notePaths,
       explicitNotePaths,
       retrievalNotePaths,
       retrievalNotes: retrievalNotes.map((note) => ({
@@ -510,6 +560,75 @@ export class VaultAiPlugin extends Plugin {
       preferredPaths: options.preferredPaths,
       excludedRoots: [this.settings.conversationsRoot]
     });
+  }
+
+  private async loadCrossChatMemory(
+    prompt: string,
+    contextSummary: ResolvedContextSummary
+  ): Promise<Array<{ path: string; summary: string }>> {
+    const [conversations, memories] = await Promise.all([
+      this.listConversations(),
+      this.listLongTermMemories()
+    ]);
+
+    return buildCrossChatMemory(
+      conversations,
+      prompt,
+      contextSummary,
+      memories
+    );
+  }
+
+  async saveLongTermPreferenceMemory(input: {
+    summary: string;
+    details: string;
+    sourceConversationPath?: string;
+    tags?: string[];
+  }): Promise<PersistedMemoryEntry | null> {
+    if (!this.memoryStorage) {
+      return null;
+    }
+
+    return this.memoryStorage.savePreference(input);
+  }
+
+  async saveLongTermMemory(input: {
+    type: PersistedMemoryEntry["type"];
+    summary: string;
+    details: string;
+    sourceConversationPath?: string;
+    tags?: string[];
+  }): Promise<PersistedMemoryEntry | null> {
+    if (!this.memoryStorage) {
+      return null;
+    }
+
+    return this.memoryStorage.saveMemory(input);
+  }
+
+  async updateLongTermMemory(
+    id: string,
+    updates: Partial<
+      Pick<PersistedMemoryEntry, "summary" | "details" | "tags" | "type">
+    >
+  ): Promise<PersistedMemoryEntry | null> {
+    if (!this.memoryStorage) {
+      return null;
+    }
+
+    return this.memoryStorage.updateMemory(id, updates);
+  }
+
+  async deleteLongTermMemory(id: string): Promise<boolean> {
+    if (!this.memoryStorage) {
+      return false;
+    }
+
+    return this.memoryStorage.deleteMemory(id);
+  }
+
+  async listLongTermMemories(): Promise<PersistedMemoryEntry[]> {
+    return (await this.memoryStorage?.listMemories()) ?? [];
   }
 
   private async resolveMentionedNotePaths(

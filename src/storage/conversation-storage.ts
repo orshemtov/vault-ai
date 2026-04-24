@@ -39,7 +39,8 @@ export class ConversationStorage {
       ? await this.loadConversation(existingPath)
       : null;
 
-    const path = existingConversation?.path ?? this.createConversationPath();
+    const path =
+      existingConversation?.path ?? (await this.createConversationPath());
     const conversation: PersistedConversation = {
       sessionId:
         existingConversation?.sessionId ?? createConversationSessionId(),
@@ -90,10 +91,20 @@ export class ConversationStorage {
     );
   }
 
-  private createConversationPath(): string {
-    return normalizePath(
-      `${this.conversationsRoot}/${createConversationFileName()}`
-    );
+  private async createConversationPath(): Promise<string> {
+    const fileName = createConversationFileName();
+    const baseName = fileName.replace(/\.md$/, "");
+    let candidate = normalizePath(`${this.conversationsRoot}/${fileName}`);
+    let counter = 1;
+
+    while (this.app.vault.getAbstractFileByPath(candidate)) {
+      candidate = normalizePath(
+        `${this.conversationsRoot}/${baseName}-${counter}.md`
+      );
+      counter += 1;
+    }
+
+    return candidate;
   }
 
   private async ensureFolderExists(): Promise<void> {

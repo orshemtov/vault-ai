@@ -15,6 +15,10 @@ describe("pluginSettingsSchema", () => {
     expect(DEFAULT_SETTINGS.commandsRoot).toBe("Commands");
   });
 
+  it("requires a memory root", () => {
+    expect(DEFAULT_SETTINGS.memoryRoot).toBe("AI/Memory");
+  });
+
   it("keeps a valid default provider and model pair", () => {
     expect(DEFAULT_SETTINGS.defaultProvider).toBe("openrouter");
     expect(DEFAULT_SETTINGS.defaultChatModel).toBe("openai/gpt-5.4");

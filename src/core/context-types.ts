@@ -17,6 +17,7 @@ export interface ResolvedContextSummary {
   title: string;
   description: string;
   notePaths: string[];
+  contextNotePaths?: string[];
   explicitNotePaths?: string[];
   retrievalNotePaths?: string[];
   retrievalNotes?: RetrievedContextNote[];

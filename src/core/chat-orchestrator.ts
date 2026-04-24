@@ -3,6 +3,8 @@ import type { VaultAiPluginSettings, ProviderId } from "@app/settings";
 import type { AssistantResponse } from "@core/assistant-response";
 import type { ResolvedContextSummary } from "@core/context-types";
 import type { ProviderRegistry } from "@providers/provider-registry";
+import type { SkillDefinition } from "@skills/skill-types";
+import type { ToolDefinition } from "@tools/tool-types";
 import type {
   ToolCallInput,
   ToolRunResult,
@@ -19,6 +21,12 @@ export interface ChatRequestInput {
     role: "user" | "assistant";
     text: string;
   }>;
+  crossChatMemory?: Array<{
+    path: string;
+    summary: string;
+  }>;
+  allowedTools?: ToolDefinition[];
+  allowedSkills?: SkillDefinition[];
 }
 
 export interface ConversationTitleInput {
@@ -58,17 +66,20 @@ export class ChatOrchestrator {
         userPrompt: buildUserPrompt(
           input.prompt,
           input.contextSummary,
-          input.recentMessages
+          input.recentMessages,
+          input.crossChatMemory,
+          input.allowedTools,
+          input.allowedSkills
         ),
         temperature: input.agent.temperature
       },
       settings
     );
 
-    const citations = createCitations(response.text, input.contextSummary);
     const toolCall = parseToolCall(response.text);
     if (toolCall && this.toolRuntime) {
       const toolResult = await this.toolRuntime.runTool(input.agent, toolCall);
+      const baseText = stripToolCallBlocks(response.text);
       if (toolResult.status === "allowed" && toolResult.output) {
         const followUp = await adapter.generateText(
           {
@@ -78,6 +89,9 @@ export class ChatOrchestrator {
               input.prompt,
               input.contextSummary,
               input.recentMessages,
+              input.crossChatMemory,
+              input.allowedTools,
+              input.allowedSkills,
               toolCall,
               toolResult.output
             ),
@@ -88,7 +102,11 @@ export class ChatOrchestrator {
 
         return {
           text: followUp.text,
-          citations,
+          citations: createCitations(
+            input.contextSummary,
+            toolCall,
+            toolResult
+          ),
           toolEvents: [toolResult]
         };
       }
@@ -99,25 +117,28 @@ export class ChatOrchestrator {
       ) {
         return {
           text: appendToolResult(
-            response.text,
-            buildBlockedToolExplanation(toolResult),
-            citations
+            baseText,
+            buildBlockedToolExplanation(toolResult)
           ),
-          citations,
+          citations: createCitations(
+            input.contextSummary,
+            toolCall,
+            toolResult
+          ),
           toolEvents: [toolResult]
         };
       }
 
       return {
-        text: appendToolResult(response.text, toolResult.message, citations),
-        citations,
+        text: appendToolResult(baseText, toolResult.message),
+        citations: createCitations(input.contextSummary, toolCall, toolResult),
         toolEvents: [toolResult]
       };
     }
 
     return {
       text: response.text,
-      citations
+      citations: createCitations(input.contextSummary)
     };
   }
 
@@ -143,7 +164,10 @@ export class ChatOrchestrator {
         userPrompt: buildUserPrompt(
           input.prompt,
           input.contextSummary,
-          input.recentMessages
+          input.recentMessages,
+          input.crossChatMemory,
+          input.allowedTools,
+          input.allowedSkills
         ),
         temperature: input.agent.temperature
       },
@@ -151,11 +175,71 @@ export class ChatOrchestrator {
       callbacks,
       options
     );
-    const citations = createCitations(response.text, input.contextSummary);
+
+    const toolCall = parseToolCall(response.text);
+    if (toolCall && this.toolRuntime) {
+      const toolResult = await this.toolRuntime.runTool(input.agent, toolCall);
+      const baseText = stripToolCallBlocks(response.text);
+
+      if (toolResult.status === "allowed" && toolResult.output) {
+        const followUp = await adapter.generateText(
+          {
+            modelId: input.modelId,
+            systemPrompt: input.agent.prompt,
+            userPrompt: buildToolFollowUpPrompt(
+              input.prompt,
+              input.contextSummary,
+              input.recentMessages,
+              input.crossChatMemory,
+              input.allowedTools,
+              input.allowedSkills,
+              toolCall,
+              toolResult.output
+            ),
+            temperature: input.agent.temperature
+          },
+          settings
+        );
+
+        return {
+          text: followUp.text,
+          citations: createCitations(
+            input.contextSummary,
+            toolCall,
+            toolResult
+          ),
+          toolEvents: [toolResult]
+        };
+      }
+
+      if (
+        toolResult.status === "denied" ||
+        toolResult.status === "approval-required"
+      ) {
+        return {
+          text: appendToolResult(
+            baseText,
+            buildBlockedToolExplanation(toolResult)
+          ),
+          citations: createCitations(
+            input.contextSummary,
+            toolCall,
+            toolResult
+          ),
+          toolEvents: [toolResult]
+        };
+      }
+
+      return {
+        text: appendToolResult(baseText, toolResult.message),
+        citations: createCitations(input.contextSummary, toolCall, toolResult),
+        toolEvents: [toolResult]
+      };
+    }
 
     return {
       text: response.text,
-      citations
+      citations: createCitations(input.contextSummary)
     };
   }
 
@@ -195,7 +279,10 @@ export class ChatOrchestrator {
 export function buildUserPrompt(
   prompt: string,
   contextSummary: ResolvedContextSummary,
-  recentMessages: ChatRequestInput["recentMessages"] = []
+  recentMessages: ChatRequestInput["recentMessages"] = [],
+  crossChatMemory: ChatRequestInput["crossChatMemory"] = [],
+  allowedTools: ChatRequestInput["allowedTools"] = [],
+  allowedSkills: ChatRequestInput["allowedSkills"] = []
 ): string {
   const groundingLines = [
     "Grounding instructions:",
@@ -211,6 +298,24 @@ export function buildUserPrompt(
       ? `Explicitly mentioned notes: ${contextSummary.explicitNotePaths.join(", ")}`
       : "Explicitly mentioned notes: none"
   ];
+  const toolLines =
+    allowedTools.length > 0
+      ? [
+          "Allowed tools:",
+          ...allowedTools.map((tool) => `- ${tool.id}: ${tool.description}`),
+          "Use a fenced TOOL_CALL JSON block only when a tool is necessary and the tool matches the requested task exactly."
+        ]
+      : ["Allowed tools: none"];
+  const skillLines =
+    allowedSkills.length > 0
+      ? [
+          "Allowed skills:",
+          ...allowedSkills.flatMap((skill) => [
+            `- ${skill.name} (${skill.id}): ${skill.description}`,
+            skill.prompt
+          ])
+        ]
+      : ["Allowed skills: none"];
 
   return [
     `Context scope: ${contextSummary.scope}`,
@@ -230,6 +335,16 @@ export function buildUserPrompt(
           "Interpret ambiguous follow-up terms using the recent conversation first, then the supplied note context. Stay on the current topic unless the user clearly changes it."
         ].join("\n\n")
       : "",
+    crossChatMemory.length > 0
+      ? [
+          "Cross-chat memory:",
+          crossChatMemory
+            .map((memory) => `- ${memory.summary} (source: ${memory.path})`)
+            .join("\n")
+        ].join("\n\n")
+      : "",
+    toolLines.join("\n"),
+    skillLines.join("\n\n"),
     "Context content:",
     contextSummary.promptContext,
     "User request:",
@@ -238,70 +353,75 @@ export function buildUserPrompt(
 }
 
 function createCitations(
-  responseText: string,
-  contextSummary: ResolvedContextSummary
+  contextSummary: ResolvedContextSummary,
+  toolCall?: ToolCallInput,
+  toolResult?: ToolRunResult
 ): AssistantResponse["citations"] {
-  const normalizedResponse = responseText.toLowerCase();
-  const citations = [
-    ...(contextSummary.explicitNotePaths ?? []).map((path) => ({
-      path,
-      reason: "explicit" as const
-    })),
-    ...(contextSummary.retrievalNotePaths ?? []).map((path) => ({
-      path,
-      reason: "retrieved" as const
-    }))
-  ];
+  const citations: AssistantResponse["citations"] = [];
 
-  return dedupeCitations(citations).filter((citation) =>
-    responseReferencesPath(normalizedResponse, citation.path)
-  );
-}
+  for (const path of contextSummary.explicitNotePaths ?? []) {
+    citations.push({ path, reason: "explicit" });
+  }
 
-function responseReferencesPath(responseText: string, path: string): boolean {
-  const basename = path.split("/").pop()?.replace(/\.md$/i, "") ?? path;
-  const normalizedBasename = basename.toLowerCase();
-  const normalizedPath = path.toLowerCase();
-
-  return (
-    responseText.includes(normalizedPath) ||
-    responseText.includes(normalizedBasename) ||
-    responseText.includes(`[[${normalizedPath}]]`) ||
-    responseText.includes(`[[${normalizedBasename}]]`)
-  );
-}
-
-function dedupeCitations(citations: AssistantResponse["citations"]) {
-  const seen = new Set<string>();
-  return citations.filter((citation) => {
-    if (seen.has(citation.path)) {
-      return false;
+  for (const path of contextSummary.retrievalNotePaths ?? []) {
+    if (!citations.some((citation) => citation.path === path)) {
+      citations.push({ path, reason: "retrieved" });
     }
+  }
 
-    seen.add(citation.path);
-    return true;
-  });
+  for (const path of contextSummary.contextNotePaths ?? []) {
+    if (!citations.some((citation) => citation.path === path)) {
+      citations.push({ path, reason: "context" });
+    }
+  }
+
+  const toolPath = extractToolPath(toolCall, toolResult);
+  if (toolPath && !citations.some((citation) => citation.path === toolPath)) {
+    citations.push({ path: toolPath, reason: "context" });
+  }
+
+  return citations;
 }
 
-function appendToolResult(
-  text: string,
-  toolMessage: string,
-  citations: AssistantResponse["citations"]
-): string {
-  const withoutToolCall = text.replace(/```TOOL_CALL[\s\S]*?```/g, "").trim();
-  void citations;
-  return `${withoutToolCall}\n\nTool result: ${toolMessage}`.trim();
+function extractToolPath(
+  toolCall?: ToolCallInput,
+  toolResult?: ToolRunResult
+): string | undefined {
+  if (!toolCall || toolResult?.status !== "allowed") {
+    return undefined;
+  }
+
+  const path = toolCall.input.path;
+  return typeof path === "string" && path.trim() ? path : undefined;
+}
+
+function appendToolResult(text: string, toolMessage: string): string {
+  return `${text}\n\nTool result: ${toolMessage}`.trim();
+}
+
+function stripToolCallBlocks(text: string): string {
+  return text.replace(/```TOOL_CALL[\s\S]*?```/g, "").trim();
 }
 
 function buildToolFollowUpPrompt(
   prompt: string,
   contextSummary: ResolvedContextSummary,
   recentMessages: ChatRequestInput["recentMessages"],
+  crossChatMemory: ChatRequestInput["crossChatMemory"],
+  allowedTools: ChatRequestInput["allowedTools"],
+  allowedSkills: ChatRequestInput["allowedSkills"],
   toolCall: ToolCallInput,
   toolOutput: string
 ): string {
   return [
-    buildUserPrompt(prompt, contextSummary, recentMessages),
+    buildUserPrompt(
+      prompt,
+      contextSummary,
+      recentMessages,
+      crossChatMemory,
+      allowedTools,
+      allowedSkills
+    ),
     "Tool call executed:",
     JSON.stringify(toolCall, null, 2),
     "Tool output:",

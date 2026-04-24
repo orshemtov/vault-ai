@@ -1,4 +1,5 @@
 import type { AgentDefinition } from "@agents/agent-types";
+import type { VaultAiPlugin } from "@app/plugin";
 import { App, MarkdownView, TFile, normalizePath } from "obsidian";
 import { canAgentUseTool } from "./tool-permissions";
 import { ToolRegistry } from "./tool-registry";
@@ -67,6 +68,27 @@ export class ToolRuntime {
     input: Record<string, unknown>
   ): Promise<string> {
     switch (tool.id) {
+      case "get-current-date":
+        return this.getCurrentDate();
+      case "list-memories":
+        return this.listMemories(getOptionalString(input, "query") ?? "");
+      case "save-memory":
+        return this.saveMemory(
+          requireMemoryType(input, "type"),
+          requireString(input, "summary"),
+          requireString(input, "details"),
+          getOptionalStringArray(input, "tags") ?? []
+        );
+      case "update-memory":
+        return this.updateMemory(
+          requireString(input, "id"),
+          getOptionalString(input, "summary"),
+          getOptionalString(input, "details"),
+          getOptionalStringArray(input, "tags"),
+          getOptionalMemoryType(input, "type")
+        );
+      case "delete-memory":
+        return this.deleteMemory(requireString(input, "id"));
       case "get-active-note":
         return this.getActiveNote();
       case "get-selection":
@@ -105,6 +127,99 @@ export class ToolRuntime {
       default:
         throw new Error(`Tool '${tool.id}' does not have an executor.`);
     }
+  }
+
+  private async getCurrentDate(): Promise<string> {
+    const now = new Date();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    return formatToolResult("get-current-date", [
+      `ISO: ${now.toISOString()}`,
+      `Local date: ${now.toLocaleDateString()}`,
+      `Local time: ${now.toLocaleTimeString()}`,
+      `Timezone: ${timezone}`
+    ]);
+  }
+
+  private async listMemories(query: string): Promise<string> {
+    const plugin = this.app as App & Partial<VaultAiPlugin>;
+    const memories = (await plugin.listLongTermMemories?.()) ?? [];
+    const normalizedQuery = query.trim().toLowerCase();
+    const filtered = normalizedQuery
+      ? memories.filter((memory) =>
+          `${memory.summary}\n${memory.details}\n${memory.tags.join(" ")}`
+            .toLowerCase()
+            .includes(normalizedQuery)
+        )
+      : memories;
+
+    return formatToolResult("list-memories", [
+      `Matches: ${filtered.length}`,
+      ...filtered.map(
+        (memory) =>
+          `${memory.id} | ${memory.type} | ${memory.summary} | ${memory.path}`
+      )
+    ]);
+  }
+
+  private async saveMemory(
+    type: "preference" | "fact" | "lesson",
+    summary: string,
+    details: string,
+    tags: string[]
+  ): Promise<string> {
+    const plugin = this.app as App & Partial<VaultAiPlugin>;
+    const memory = await plugin.saveLongTermMemory?.({
+      type,
+      summary,
+      details,
+      tags
+    });
+    if (!memory) {
+      throw new Error("Long-term memory storage is not available.");
+    }
+
+    return formatToolResult("save-memory", [
+      `Saved: ${memory.id}`,
+      `Path: ${memory.path}`,
+      `Type: ${memory.type}`,
+      `Summary: ${memory.summary}`
+    ]);
+  }
+
+  private async updateMemory(
+    id: string,
+    summary: string | null,
+    details: string | null,
+    tags: string[] | null,
+    type: "preference" | "fact" | "lesson" | null
+  ): Promise<string> {
+    const plugin = this.app as App & Partial<VaultAiPlugin>;
+    const memory = await plugin.updateLongTermMemory?.(id, {
+      ...(summary ? { summary } : {}),
+      ...(details ? { details } : {}),
+      ...(tags ? { tags } : {}),
+      ...(type ? { type } : {})
+    });
+    if (!memory) {
+      throw new Error(`Memory '${id}' was not found.`);
+    }
+
+    return formatToolResult("update-memory", [
+      `Updated: ${memory.id}`,
+      `Path: ${memory.path}`,
+      `Summary: ${memory.summary}`
+    ]);
+  }
+
+  private async deleteMemory(id: string): Promise<string> {
+    const plugin = this.app as App & Partial<VaultAiPlugin>;
+    const deleted = await plugin.deleteLongTermMemory?.(id);
+    if (!deleted) {
+      throw new Error(`Memory '${id}' was not found.`);
+    }
+
+    return formatToolResult("delete-memory", [`Deleted: ${id}`]);
   }
 
   private async getActiveNote(): Promise<string> {
@@ -308,6 +423,22 @@ function getOptionalNumber(
   return Math.floor(value);
 }
 
+function getOptionalStringArray(
+  input: Record<string, unknown>,
+  key: string
+): string[] | null {
+  const value = input[key];
+  if (value === undefined) {
+    return null;
+  }
+
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error(`Tool input '${key}' must be an array of strings.`);
+  }
+
+  return value.map((item) => item.trim()).filter(Boolean);
+}
+
 function requireObject(
   input: Record<string, unknown>,
   key: string
@@ -318,6 +449,32 @@ function requireObject(
   }
 
   return value;
+}
+
+function requireMemoryType(
+  input: Record<string, unknown>,
+  key: string
+): "preference" | "fact" | "lesson" {
+  const value = input[key];
+  if (value !== "preference" && value !== "fact" && value !== "lesson") {
+    throw new Error(
+      `Tool input '${key}' must be one of: preference, fact, lesson.`
+    );
+  }
+
+  return value;
+}
+
+function getOptionalMemoryType(
+  input: Record<string, unknown>,
+  key: string
+): "preference" | "fact" | "lesson" | null {
+  const value = input[key];
+  if (value === undefined) {
+    return null;
+  }
+
+  return requireMemoryType(input, key);
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

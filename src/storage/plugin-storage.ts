@@ -11,6 +11,8 @@ export interface PluginStoredState<TSettings> {
 }
 
 export class PluginStorage {
+  private writeQueue: Promise<void> = Promise.resolve();
+
   constructor(private readonly plugin: Plugin) {}
 
   async load<T>(fallback: T): Promise<T> {
@@ -24,13 +26,11 @@ export class PluginStorage {
   }
 
   async save<T>(value: T): Promise<void> {
-    const current =
-      (await this.plugin.loadData()) as PluginStoredState<T> | null;
-    await this.plugin.saveData({
+    await this.updateStoredState<T>((current) => ({
       settings: value,
-      activeConversationPath: current?.activeConversationPath ?? null,
-      assistantState: current?.assistantState
-    } satisfies PluginStoredState<T>);
+      activeConversationPath: current.activeConversationPath,
+      assistantState: current.assistantState
+    }));
   }
 
   async loadActiveConversationPath(): Promise<string | null> {
@@ -40,13 +40,11 @@ export class PluginStorage {
   }
 
   async saveActiveConversationPath(path: string | null): Promise<void> {
-    const current =
-      (await this.plugin.loadData()) as PluginStoredState<unknown> | null;
-    await this.plugin.saveData({
-      settings: current?.settings ?? null,
+    await this.updateStoredState((current) => ({
+      settings: current.settings,
       activeConversationPath: path,
-      assistantState: current?.assistantState
-    });
+      assistantState: current.assistantState
+    }));
   }
 
   async loadAssistantState(): Promise<
@@ -62,13 +60,26 @@ export class PluginStorage {
     modelId?: string;
     agentId?: string;
   }): Promise<void> {
-    const current =
-      (await this.plugin.loadData()) as PluginStoredState<unknown> | null;
-    await this.plugin.saveData({
-      settings: current?.settings ?? null,
-      activeConversationPath: current?.activeConversationPath ?? null,
+    await this.updateStoredState((current) => ({
+      settings: current.settings,
+      activeConversationPath: current.activeConversationPath,
       assistantState: state
+    }));
+  }
+
+  private async updateStoredState<T>(
+    updater: (
+      current: PluginStoredState<T | null>
+    ) => PluginStoredState<T | null>
+  ): Promise<void> {
+    this.writeQueue = this.writeQueue.then(async () => {
+      const current = normalizeStoredState<T>(
+        (await this.plugin.loadData()) as PluginStoredState<T | null> | null
+      );
+      await this.plugin.saveData(updater(current));
     });
+
+    await this.writeQueue;
   }
 }
 
@@ -81,4 +92,14 @@ function isPluginStoredState(
     "settings" in value &&
     "activeConversationPath" in value
   );
+}
+
+function normalizeStoredState<T>(
+  value: PluginStoredState<T | null> | null
+): PluginStoredState<T | null> {
+  return {
+    settings: value?.settings ?? null,
+    activeConversationPath: value?.activeConversationPath ?? null,
+    assistantState: value?.assistantState
+  };
 }

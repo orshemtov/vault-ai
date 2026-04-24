@@ -1,3 +1,7 @@
+import {
+  getFirstGenerationModelForProvider,
+  listGenerationModels
+} from "@providers/provider-selection";
 import type { VaultAiPlugin } from "@app/plugin";
 import type { ProviderId } from "@app/settings";
 import { PluginSettingTab, Setting } from "obsidian";
@@ -23,21 +27,18 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
 
     const currentProviderId = this.plugin.settings.defaultProvider;
 
-    const modelOptions = this.plugin
-      .getProviderCatalogSnapshots([
-        "openrouter",
-        "ollama",
-        "openai",
-        "anthropic"
-      ])
-      .flatMap((catalog) =>
-        catalog.models.map((model) => ({
-          providerId: catalog.providerId,
-          modelId: model.modelId,
-          key: `${catalog.providerId}${MODEL_KEY_SEPARATOR}${model.modelId}`,
-          label: `${catalog.providerId}/${model.displayName}`
-        }))
-      );
+    const catalogs = this.plugin.getProviderCatalogSnapshots([
+      "openrouter",
+      "ollama",
+      "openai",
+      "anthropic"
+    ]);
+    const modelOptions = listGenerationModels(catalogs).map((model) => ({
+      providerId: model.providerId,
+      modelId: model.modelId,
+      key: `${model.providerId}${MODEL_KEY_SEPARATOR}${model.modelId}`,
+      label: `${model.providerId}/${model.displayName}`
+    }));
     const selectedProviderModelOptions = modelOptions.filter(
       (option) => option.providerId === currentProviderId
     );
@@ -75,9 +76,10 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
         .setValue(currentProviderId)
         .onChange(async (value) => {
           const providerId = value as ProviderId;
-          const firstProviderModel =
-            modelOptions.find((option) => option.providerId === providerId) ??
-            null;
+          const firstProviderModel = getFirstGenerationModelForProvider(
+            catalogs,
+            providerId
+          );
           await this.plugin.updateSettings({
             defaultProvider: providerId,
             defaultChatModel:
@@ -148,6 +150,14 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
             conversationsRoot: value.trim() || "AI/Conversations"
           });
         });
+    });
+
+    new Setting(vaultSection).setName("Memory root").addText((text) => {
+      text.setValue(this.plugin.settings.memoryRoot).onChange(async (value) => {
+        await this.plugin.updateSettings({
+          memoryRoot: value.trim() || "AI/Memory"
+        });
+      });
     });
 
     new Setting(behaviorSection)

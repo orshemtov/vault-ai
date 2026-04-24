@@ -2,9 +2,15 @@ import { providerIdSchema } from "../app/settings";
 import matter from "gray-matter";
 import { z } from "zod";
 import type {
+  AssistantCitation,
+  AssistantToolEvent
+} from "@core/assistant-response";
+import type {
   PersistedConversation,
   StoredConversationMessage
 } from "./conversation-types";
+
+const transcriptMarker = "VAULT_AI_TRANSCRIPT_V1";
 
 const conversationFrontmatterSchema = z.object({
   type: z.literal("ai-conversation"),
@@ -18,6 +24,28 @@ const conversationFrontmatterSchema = z.object({
   context_scope: z.enum(["current-note", "selection", "whole-vault"]),
   referenced_notes: z.array(z.string()).default([])
 });
+
+const citationSchema = z.object({
+  path: z.string().min(1),
+  reason: z.enum(["retrieved", "explicit", "context"])
+});
+
+const toolEventSchema = z.object({
+  toolId: z.string().min(1),
+  status: z.enum(["allowed", "denied", "approval-required"]),
+  message: z.string().min(1),
+  output: z.string().optional()
+});
+
+const storedMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  text: z.string(),
+  citations: z.array(citationSchema).optional(),
+  toolEvents: z.array(toolEventSchema).optional(),
+  status: z.enum(["error", "done"]).optional()
+});
+
+const transcriptSchema = z.array(storedMessageSchema);
 
 export function serializeConversation(
   conversation: PersistedConversation
@@ -69,7 +97,7 @@ export function createConversationFileName(date = new Date()): string {
   return `${date
     .toISOString()
     .replace(/:/g, "-")
-    .replace(/\.\d{3}Z$/, "Z")}.md`;
+    .replace(/\.(\d{3})Z$/, "-$1Z")}.md`;
 }
 
 export function createConversationSessionId(date = new Date()): string {
@@ -77,31 +105,21 @@ export function createConversationSessionId(date = new Date()): string {
 }
 
 function formatConversationBody(messages: StoredConversationMessage[]): string {
-  return messages
-    .map((message) => {
-      const title = message.role === "user" ? "User" : "Assistant";
-      const statusBlock =
-        message.status === "error" ? "\n\n_Status: error_" : "";
-      const citationsBlock =
-        message.citations && message.citations.length > 0
-          ? `\n\n_Citations: ${message.citations.map((citation) => citation.path).join(", ")}_`
-          : "";
-      const toolsBlock =
-        message.toolEvents && message.toolEvents.length > 0
-          ? `\n\n_Tools: ${message.toolEvents
-              .map((tool) => `${tool.toolId}:${tool.status}`)
-              .join(", ")}_`
-          : "";
-
-      return [
-        `## ${title}`,
-        `${statusBlock}${citationsBlock}${toolsBlock}\n\n${message.text}`.trim()
-      ].join("\n\n");
-    })
-    .join("\n\n");
+  const transcript = encodeTranscript(messages);
+  return `<!-- ${transcriptMarker}\n${transcript}\n-->`;
 }
 
 function parseConversationBody(body: string): StoredConversationMessage[] {
+  const transcriptMatch = body.match(
+    new RegExp(
+      `^<!-- ${transcriptMarker}\\n([A-Za-z0-9+/=\\r\\n]+)\\n-->$`,
+      "m"
+    )
+  );
+  if (transcriptMatch) {
+    return decodeTranscript(transcriptMatch[1]);
+  }
+
   const sections = body
     .split(/^## /m)
     .map((section) => section.trim())
@@ -120,19 +138,10 @@ function parseConversationBody(body: string): StoredConversationMessage[] {
         role,
         status: (statusMatch[1] as "error" | undefined) ?? "done",
         citations: statusMatch[2]
-          ? statusMatch[2]
-              .split(", ")
-              .map((path) => ({ path, reason: "retrieved" as const }))
+          ? formatLegacyCitations(statusMatch[2])
           : undefined,
         toolEvents: statusMatch[3]
-          ? statusMatch[3].split(", ").map((entry) => {
-              const [toolId, status] = entry.split(":");
-              return {
-                toolId,
-                status: status as "allowed" | "denied" | "approval-required",
-                message: `${toolId} ${status}`
-              };
-            })
+          ? formatLegacyToolEvents(statusMatch[3])
           : undefined,
         text: statusMatch[4].trim()
       };
@@ -142,6 +151,34 @@ function parseConversationBody(body: string): StoredConversationMessage[] {
       role,
       status: "done",
       text: block
+    };
+  });
+}
+
+function encodeTranscript(messages: StoredConversationMessage[]): string {
+  return Buffer.from(JSON.stringify(messages), "utf8").toString("base64");
+}
+
+function decodeTranscript(encoded: string): StoredConversationMessage[] {
+  const json = Buffer.from(encoded.replace(/\s+/g, ""), "base64").toString(
+    "utf8"
+  );
+  return transcriptSchema.parse(JSON.parse(json));
+}
+
+function formatLegacyCitations(paths: string): AssistantCitation[] {
+  return paths
+    .split(", ")
+    .map((path) => ({ path, reason: "retrieved" as const }));
+}
+
+function formatLegacyToolEvents(entries: string): AssistantToolEvent[] {
+  return entries.split(", ").map((entry) => {
+    const [toolId, status] = entry.split(":");
+    return {
+      toolId,
+      status: status as AssistantToolEvent["status"],
+      message: `${toolId} ${status}`
     };
   });
 }

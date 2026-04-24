@@ -10,6 +10,7 @@ describe("command parser", () => {
       `---
 description: Summarize a note
 agent: ask
+provider: openai
 model: openai/gpt-5.4
 ---
 Summarize $ARGUMENTS
@@ -19,6 +20,7 @@ Summarize $ARGUMENTS
 
     expect(command.id).toBe("summarize");
     expect(command.agent).toBe("ask");
+    expect(command.provider).toBe("openai");
     expect(command.template).toContain("$ARGUMENTS");
   });
 

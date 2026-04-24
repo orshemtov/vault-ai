@@ -18,6 +18,7 @@
     "paths": {
       "@agents/*": ["src/agents/*"],
       "@app/*": ["src/app/*"],
+      "@commands/*": ["src/commands/*"],
       "@core/*": ["src/core/*"],
       "@providers/*": ["src/providers/*"],
       "@retrieval/*": ["src/retrieval/*"],
