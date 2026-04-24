@@ -1,8 +1,8 @@
-import { DEFAULT_SETTINGS, type VaultAiPluginSettings } from "./settings";
+import { DEFAULT_SETTINGS, type OpenVaultAiPluginSettings } from "./settings";
 
 export function createTestSettings(
-  overrides: Partial<VaultAiPluginSettings> = {}
-): VaultAiPluginSettings {
+  overrides: Partial<OpenVaultAiPluginSettings> = {}
+): OpenVaultAiPluginSettings {
   return {
     ...DEFAULT_SETTINGS,
     ...overrides

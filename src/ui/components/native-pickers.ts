@@ -1,11 +1,11 @@
 import type { AgentDefinition } from "@agents/agent-types";
-import type { VaultAiPlugin } from "@app/plugin";
+import type { OpenVaultAiPlugin } from "@app/plugin";
 import type { ProviderCatalogSnapshot } from "@providers/provider-runtime";
 import type { PersistedConversation } from "@storage/conversation-types";
 import { FuzzySuggestModal } from "obsidian";
 
 export function openAgentMenu(options: {
-  plugin: VaultAiPlugin;
+  plugin: OpenVaultAiPlugin;
   agents: AgentDefinition[];
   selectedAgentId: string;
   onChoose: (agent: AgentDefinition) => void;
@@ -21,7 +21,7 @@ type ModelOption = {
 };
 
 export function openModelSuggest(options: {
-  plugin: VaultAiPlugin;
+  plugin: OpenVaultAiPlugin;
   providerStatus: ProviderCatalogSnapshot["status"];
   selectedProviderId: string;
   items: ModelOption[];
@@ -31,7 +31,7 @@ export function openModelSuggest(options: {
 }
 
 export function openConversationSuggest(options: {
-  plugin: VaultAiPlugin;
+  plugin: OpenVaultAiPlugin;
   conversations: PersistedConversation[];
   onChoose: (conversation: PersistedConversation) => void;
 }): void {
@@ -43,7 +43,7 @@ class ModelSuggestModal extends FuzzySuggestModal<ModelOption> {
 
   constructor(
     private readonly options: {
-      plugin: VaultAiPlugin;
+      plugin: OpenVaultAiPlugin;
       providerStatus: ProviderCatalogSnapshot["status"];
       selectedProviderId: string;
       items: ModelOption[];
@@ -71,13 +71,13 @@ class ModelSuggestModal extends FuzzySuggestModal<ModelOption> {
     item: { item: ModelOption },
     el: HTMLElement
   ): void {
-    el.addClass("vault-ai__native-suggest-item");
+    el.addClass("openvault-ai__native-suggest-item");
     el.createDiv({
-      cls: "vault-ai__native-suggest-title",
+      cls: "openvault-ai__native-suggest-title",
       text: item.item.label
     });
     el.createDiv({
-      cls: "vault-ai__native-suggest-meta",
+      cls: "openvault-ai__native-suggest-meta",
       text: item.item.providerId
     });
   }
@@ -92,7 +92,7 @@ class AgentSuggestModal extends FuzzySuggestModal<AgentDefinition> {
 
   constructor(
     private readonly options: {
-      plugin: VaultAiPlugin;
+      plugin: OpenVaultAiPlugin;
       agents: AgentDefinition[];
       selectedAgentId: string;
       onChoose: (agent: AgentDefinition) => void;
@@ -116,9 +116,9 @@ class AgentSuggestModal extends FuzzySuggestModal<AgentDefinition> {
     item: { item: AgentDefinition },
     el: HTMLElement
   ): void {
-    el.addClass("vault-ai__native-suggest-item");
+    el.addClass("openvault-ai__native-suggest-item");
     el.createDiv({
-      cls: "vault-ai__native-suggest-title",
+      cls: "openvault-ai__native-suggest-title",
       text: item.item.name
     });
   }
@@ -133,7 +133,7 @@ class ConversationSuggestModal extends FuzzySuggestModal<PersistedConversation> 
 
   constructor(
     private readonly options: {
-      plugin: VaultAiPlugin;
+      plugin: OpenVaultAiPlugin;
       conversations: PersistedConversation[];
       onChoose: (conversation: PersistedConversation) => void;
     }
@@ -156,13 +156,13 @@ class ConversationSuggestModal extends FuzzySuggestModal<PersistedConversation> 
     item: { item: PersistedConversation },
     el: HTMLElement
   ): void {
-    el.addClass("vault-ai__native-suggest-item");
+    el.addClass("openvault-ai__native-suggest-item");
     el.createDiv({
-      cls: "vault-ai__native-suggest-title",
+      cls: "openvault-ai__native-suggest-title",
       text: item.item.title
     });
     el.createDiv({
-      cls: "vault-ai__native-suggest-meta",
+      cls: "openvault-ai__native-suggest-meta",
       text: formatConversationTimestamp(item.item.updatedAt)
     });
   }

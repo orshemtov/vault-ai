@@ -1,7 +1,7 @@
-export const PLUGIN_ID = "vault-ai-assistant";
-export const VIEW_TYPE_ASSISTANT = "vault-ai-assistant-view";
-export const VIEW_TITLE_ASSISTANT = "Vault AI";
-export const VIEW_ICON_ASSISTANT = "vault-ai-assistant";
+export const PLUGIN_ID = "openvault-ai";
+export const VIEW_TYPE_ASSISTANT = "openvault-ai-view";
+export const VIEW_TITLE_ASSISTANT = "OpenVault AI";
+export const VIEW_ICON_ASSISTANT = "openvault-ai";
 
 // A custom retro robot icon for the assistant view.
 export const VIEW_ICON_ASSISTANT_SVG = `

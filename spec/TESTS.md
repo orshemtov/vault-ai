@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the acceptance test dataset and evaluation framework for the Vault AI plugin.
+This document defines the acceptance test dataset and evaluation framework for the OpenVault AI plugin.
 
 It is meant to help us:
 
@@ -270,7 +270,7 @@ Track these for key flows:
 - Real vault notes/folders involved:
   - `Ideas/`
   - examples include:
-    - `Ideas/Idea - Vault AI plugin.md`
+    - `Ideas/Idea - OpenVault AI plugin.md`
     - `Ideas/Agent Harness.md`
     - `Ideas/App Idea - What do famous people think?.md`
 - Behaviors under test:
@@ -420,9 +420,9 @@ Track these for key flows:
 - Status: active
 - Priority: high
 - Agent: ask
-- Prompt: `Append a short summary to @Ideas/Idea - Vault AI plugin.md`
+- Prompt: `Append a short summary to @Ideas/Idea - OpenVault AI plugin.md`
 - Real vault notes/folders involved:
-  - `Ideas/Idea - Vault AI plugin.md`
+  - `Ideas/Idea - OpenVault AI plugin.md`
 - Behaviors under test:
   - write restriction on read-only agent
 - Expected tool / skill / command behavior:
@@ -439,9 +439,9 @@ Track these for key flows:
 - Status: active
 - Priority: high
 - Agent: edit
-- Prompt: `Append a short summary to @Ideas/Idea - Vault AI plugin.md`
+- Prompt: `Append a short summary to @Ideas/Idea - OpenVault AI plugin.md`
 - Real vault notes/folders involved:
-  - `Ideas/Idea - Vault AI plugin.md`
+  - `Ideas/Idea - OpenVault AI plugin.md`
 - Behaviors under test:
   - correct write tool use
   - safe scoped edit

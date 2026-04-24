@@ -1,3 +1,3 @@
-import { VaultAiPlugin } from "@app/plugin";
+import { OpenVaultAiPlugin } from "@app/plugin";
 
-export default VaultAiPlugin;
+export default OpenVaultAiPlugin;

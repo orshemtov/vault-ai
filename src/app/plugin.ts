@@ -1,7 +1,7 @@
 import {
   DEFAULT_SETTINGS,
   pluginSettingsSchema,
-  type VaultAiPluginSettings,
+  type OpenVaultAiPluginSettings,
   type ProviderId
 } from "@app/settings";
 import { buildCrossChatMemory } from "@app/cross-chat-memory";
@@ -51,7 +51,7 @@ import { ToolRuntime } from "@tools/tool-runtime";
 import { ToolRegistry } from "@tools/tool-registry";
 import type { ToolDefinition } from "@tools/tool-types";
 import { AssistantView } from "@ui/views/assistant-view";
-import { VaultAiPluginSettingTab } from "@ui/settings/plugin-settings-tab";
+import { OpenVaultAiPluginSettingTab } from "@ui/settings/plugin-settings-tab";
 import {
   Component,
   MarkdownRenderer,
@@ -62,8 +62,8 @@ import {
   addIcon
 } from "obsidian";
 
-export class VaultAiPlugin extends Plugin {
-  settings: VaultAiPluginSettings = DEFAULT_SETTINGS;
+export class OpenVaultAiPlugin extends Plugin {
+  settings: OpenVaultAiPluginSettings = DEFAULT_SETTINGS;
   readonly viewType = VIEW_TYPE_ASSISTANT;
 
   private readonly storage = new PluginStorage(this);
@@ -94,7 +94,7 @@ export class VaultAiPlugin extends Plugin {
     this.registerServices();
     addIcon(VIEW_ICON_ASSISTANT, VIEW_ICON_ASSISTANT_SVG);
     this.registerView(this.viewType, (leaf) => new AssistantView(leaf, this));
-    this.addSettingTab(new VaultAiPluginSettingTab(this));
+    this.addSettingTab(new OpenVaultAiPluginSettingTab(this));
     this.registerCommands();
 
     void this.refreshProviderCatalogs();
@@ -112,7 +112,9 @@ export class VaultAiPlugin extends Plugin {
     await this.app.workspace.detachLeavesOfType(this.viewType);
   }
 
-  async updateSettings(next: Partial<VaultAiPluginSettings>): Promise<void> {
+  async updateSettings(
+    next: Partial<OpenVaultAiPluginSettings>
+  ): Promise<void> {
     this.settings = pluginSettingsSchema.parse({
       ...this.settings,
       ...next
@@ -701,7 +703,7 @@ export class VaultAiPlugin extends Plugin {
   private registerCommands(): void {
     this.addCommand({
       id: "open-assistant",
-      name: "Open Vault AI",
+      name: "Open OpenVault",
       callback: async () => {
         await this.activateAssistantView();
       }
@@ -709,7 +711,7 @@ export class VaultAiPlugin extends Plugin {
 
     this.addCommand({
       id: "toggle-assistant",
-      name: "Toggle Vault AI",
+      name: "Toggle OpenVault AI",
       callback: async () => {
         await this.toggleAssistantView();
       }

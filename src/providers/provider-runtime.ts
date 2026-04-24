@@ -1,7 +1,7 @@
-import type { VaultAiPluginSettings, ProviderId } from "@app/settings";
+import type { OpenVaultAiPluginSettings, ProviderId } from "@app/settings";
 
 export type ProviderSettingsSubset = Pick<
-  VaultAiPluginSettings,
+  OpenVaultAiPluginSettings,
   | "openRouterBaseUrl"
   | "openRouterApiKey"
   | "openAiBaseUrl"

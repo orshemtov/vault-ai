@@ -1,7 +1,7 @@
 import type { AgentDefinition } from "@agents/agent-types";
 import { SUPPORTED_PROVIDERS } from "@app/defaults";
-import type { VaultAiPlugin } from "@app/plugin";
-import type { VaultAiPluginSettings, ProviderId } from "@app/settings";
+import type { OpenVaultAiPlugin } from "@app/plugin";
+import type { OpenVaultAiPluginSettings, ProviderId } from "@app/settings";
 import type { CommandDefinition } from "../../commands/command-types";
 import type { ResolvedContextSummary } from "@core/context-types";
 import {
@@ -37,8 +37,8 @@ import {
 } from "react";
 
 type AssistantShellProps = {
-  plugin: VaultAiPlugin;
-  settings: VaultAiPluginSettings;
+  plugin: OpenVaultAiPlugin;
+  settings: OpenVaultAiPluginSettings;
 };
 
 type SuggestionItem = {
@@ -782,15 +782,15 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
   };
 
   return (
-    <div className="vault-ai__view">
-      <header className="vault-ai__header">
-        <div className="vault-ai__title-stack">
-          <h1 className="vault-ai__title">Vault AI</h1>
-          <span className="vault-ai__subtitle">{conversationTitle}</span>
+    <div className="openvault-ai__view">
+      <header className="openvault-ai__header">
+        <div className="openvault-ai__title-stack">
+          <h1 className="openvault-ai__title">OpenVault AI</h1>
+          <span className="openvault-ai__subtitle">{conversationTitle}</span>
         </div>
-        <div className="vault-ai__header-actions">
+        <div className="openvault-ai__header-actions">
           <button
-            className="mod-muted vault-ai__header-button vault-ai__header-button--square"
+            className="mod-muted openvault-ai__header-button openvault-ai__header-button--square"
             onClick={() => void startNewChat()}
             type="button"
             aria-label="New chat"
@@ -799,7 +799,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
             +
           </button>
           <button
-            className="mod-muted vault-ai__header-button"
+            className="mod-muted openvault-ai__header-button"
             onClick={openChatsPicker}
             type="button"
             aria-label="Chats"
@@ -808,7 +808,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
             Chats
           </button>
           <button
-            className="mod-muted vault-ai__header-button vault-ai__header-button--square"
+            className="mod-muted openvault-ai__header-button openvault-ai__header-button--square"
             onClick={() => plugin.openPluginSettings()}
             type="button"
             aria-label="Settings"
@@ -819,25 +819,25 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
         </div>
       </header>
 
-      <div className="vault-ai__body">
-        <div className="vault-ai__chat-surface">
-          <div className="vault-ai__conversation-thread">
+      <div className="openvault-ai__body">
+        <div className="openvault-ai__chat-surface">
+          <div className="openvault-ai__conversation-thread">
             <div
-              className="vault-ai__conversation"
+              className="openvault-ai__conversation"
               ref={conversationRef}
               onScroll={handleConversationScroll}
             >
               {messages.map((message) => (
                 <article
                   key={message.id}
-                  className={`vault-ai__message vault-ai__message--${message.role} vault-ai__message--${message.status ?? "done"}`}
+                  className={`openvault-ai__message openvault-ai__message--${message.role} openvault-ai__message--${message.status ?? "done"}`}
                 >
-                  <div className="vault-ai__message-header">
+                  <div className="openvault-ai__message-header">
                     <strong>
                       {message.role === "user" ? "You" : "Assistant"}
                     </strong>
                     <button
-                      className="clickable-icon vault-ai__message-action"
+                      className="clickable-icon openvault-ai__message-action"
                       onClick={() => void copyMessage(message)}
                       type="button"
                       aria-label="Copy message"
@@ -852,11 +852,11 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
                   />
                   {message.status !== "error" &&
                   getVisibleCitations(message.citations).length > 0 ? (
-                    <details className="vault-ai__message-meta" open>
+                    <details className="openvault-ai__message-meta" open>
                       <summary>
                         Sources {getVisibleCitations(message.citations).length}
                       </summary>
-                      <ul className="vault-ai__message-source-list">
+                      <ul className="openvault-ai__message-source-list">
                         {getVisibleCitations(message.citations).map(
                           (citation) => {
                             const sourceLabel = formatCitationLabel(
@@ -865,7 +865,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
                             return (
                               <li key={`${message.id}-${citation.path}`}>
                                 <button
-                                  className="vault-ai__source-link"
+                                  className="openvault-ai__source-link"
                                   onClick={() =>
                                     void plugin.openConversationNote(
                                       citation.path
@@ -874,11 +874,11 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
                                   type="button"
                                   title={citation.path}
                                 >
-                                  <span className="vault-ai__source-link-title">
+                                  <span className="openvault-ai__source-link-title">
                                     {sourceLabel.title}
                                   </span>
                                   {sourceLabel.detail ? (
-                                    <span className="vault-ai__source-link-detail">
+                                    <span className="openvault-ai__source-link-detail">
                                       {sourceLabel.detail}
                                     </span>
                                   ) : null}
@@ -891,9 +891,9 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
                     </details>
                   ) : null}
                   {message.toolEvents && message.toolEvents.length > 0 ? (
-                    <details className="vault-ai__message-meta">
+                    <details className="openvault-ai__message-meta">
                       <summary>Activity</summary>
-                      <ul className="vault-ai__message-activity-list">
+                      <ul className="openvault-ai__message-activity-list">
                         {message.toolEvents.map((toolEvent) => (
                           <li
                             key={`${message.id}-${toolEvent.toolId}-${toolEvent.status}`}
@@ -913,14 +913,14 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
             </div>
           </div>
 
-          <div className="vault-ai__composer-shell">
-            <div className="vault-ai__composer-input-wrap">
+          <div className="openvault-ai__composer-shell">
+            <div className="openvault-ai__composer-input-wrap">
               {combinedSuggestions.length > 0 ? (
-                <div className="vault-ai__suggestions">
+                <div className="openvault-ai__suggestions">
                   {combinedSuggestions.map((suggestion, index) => (
                     <button
                       key={suggestion.key}
-                      className={`vault-ai__suggestion ${index === selectedSuggestionIndex ? "is-selected" : ""}`}
+                      className={`openvault-ai__suggestion ${index === selectedSuggestionIndex ? "is-selected" : ""}`}
                       onClick={() => {
                         setSelectedSuggestionIndex(index);
                         setPrompt((currentPrompt) => {
@@ -936,17 +936,17 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
                       }}
                       type="button"
                     >
-                      <span className="vault-ai__suggestion-leading">
-                        <span className="vault-ai__suggestion-title">
+                      <span className="openvault-ai__suggestion-leading">
+                        <span className="openvault-ai__suggestion-title">
                           {suggestion.label}
                         </span>
                         {suggestion.detail ? (
-                          <small className="vault-ai__suggestion-detail">
+                          <small className="openvault-ai__suggestion-detail">
                             {suggestion.detail}
                           </small>
                         ) : null}
                       </span>
-                      <small className="vault-ai__suggestion-meta">
+                      <small className="openvault-ai__suggestion-meta">
                         {suggestion.description}
                       </small>
                     </button>
@@ -954,7 +954,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
                 </div>
               ) : null}
 
-              <label className="vault-ai__field vault-ai__composer-field">
+              <label className="openvault-ai__field openvault-ai__composer-field">
                 <textarea
                   ref={composerInputRef}
                   rows={4}
@@ -970,27 +970,27 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
               </label>
             </div>
 
-            <div className="vault-ai__composer-footer">
-              <div className="vault-ai__composer-controls">
-                <div className="vault-ai__control-cluster">
+            <div className="openvault-ai__composer-footer">
+              <div className="openvault-ai__composer-controls">
+                <div className="openvault-ai__control-cluster">
                   <button
-                    className="vault-ai__control-button vault-ai__control-button--compact"
+                    className="openvault-ai__control-button openvault-ai__control-button--compact"
                     onClick={openAgentPicker}
                     type="button"
                   >
-                    <span className="vault-ai__control-value">
+                    <span className="openvault-ai__control-value">
                       {selectedAgent?.name ?? formatAgentLabel(selectedAgentId)}
                     </span>
                   </button>
                 </div>
 
-                <div className="vault-ai__control-cluster">
+                <div className="openvault-ai__control-cluster">
                   <button
-                    className="vault-ai__control-button vault-ai__control-button--compact vault-ai__control-button--model"
+                    className="openvault-ai__control-button openvault-ai__control-button--compact openvault-ai__control-button--model"
                     onClick={openModelPicker}
                     type="button"
                   >
-                    <span className="vault-ai__control-value">
+                    <span className="openvault-ai__control-value">
                       {selectedModelOption?.label ??
                         formatModelLabel(
                           resolvedProviderId,
@@ -1003,7 +1003,7 @@ export function AssistantShell({ plugin, settings }: AssistantShellProps) {
               </div>
 
               <button
-                className="mod-cta vault-ai__send-button"
+                className="mod-cta openvault-ai__send-button"
                 disabled={!isSending && !canSend}
                 onClick={() =>
                   isSending ? cancelActiveRequest() : void sendPromptAsync()
@@ -1093,7 +1093,11 @@ function toStoredConversationMessage(
 
 function GearIcon() {
   return (
-    <svg aria-hidden="true" className="vault-ai__gear-icon" viewBox="0 0 24 24">
+    <svg
+      aria-hidden="true"
+      className="openvault-ai__gear-icon"
+      viewBox="0 0 24 24"
+    >
       <path
         d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.06 7.06 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.89 2h-3.78a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.72 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.07.63-.07.94s.03.63.07.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.39 1.05.71 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.78a.5.5 0 0 0 .49-.42l.36-2.54c.58-.23 1.13-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"
         fill="currentColor"
@@ -1104,7 +1108,11 @@ function GearIcon() {
 
 function CopyIcon() {
   return (
-    <svg aria-hidden="true" className="vault-ai__copy-icon" viewBox="0 0 24 24">
+    <svg
+      aria-hidden="true"
+      className="openvault-ai__copy-icon"
+      viewBox="0 0 24 24"
+    >
       <path
         d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z"
         fill="currentColor"
@@ -1114,7 +1122,7 @@ function CopyIcon() {
 }
 
 type MessageMarkdownProps = {
-  plugin: VaultAiPlugin;
+  plugin: OpenVaultAiPlugin;
   text: string;
 };
 
@@ -1156,7 +1164,7 @@ function MessageMarkdown({ plugin, text }: MessageMarkdownProps) {
     };
   }, [plugin, text]);
 
-  return <div className="vault-ai__message-markdown" ref={containerRef} />;
+  return <div className="openvault-ai__message-markdown" ref={containerRef} />;
 }
 
 function replaceVaultPathsWithLinks(text: string): string {

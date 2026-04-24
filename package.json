@@ -1,5 +1,5 @@
 {
-  "name": "vault-ai",
+  "name": "openvault-ai",
   "version": "0.0.1",
   "description": "AI assistant for note-aware chat, custom agents, and multiple model providers.",
   "license": "MIT",
@@ -23,12 +23,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/orshemtov/vault-ai.git"
+    "url": "https://github.com/orshemtov/openvault-ai.git"
   },
   "bugs": {
-    "url": "https://github.com/orshemtov/vault-ai/issues"
+    "url": "https://github.com/orshemtov/openvault-ai/issues"
   },
-  "homepage": "https://github.com/orshemtov/vault-ai#readme",
+  "homepage": "https://github.com/orshemtov/openvault-ai#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",

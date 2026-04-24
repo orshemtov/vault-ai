@@ -32,9 +32,9 @@ export const pluginSettingsSchema = z.object({
 });
 
 export type ProviderId = z.infer<typeof providerIdSchema>;
-export type VaultAiPluginSettings = z.infer<typeof pluginSettingsSchema>;
+export type OpenVaultAiPluginSettings = z.infer<typeof pluginSettingsSchema>;
 
-export const DEFAULT_SETTINGS: VaultAiPluginSettings = {
+export const DEFAULT_SETTINGS: OpenVaultAiPluginSettings = {
   defaultProvider: DEFAULT_PROVIDER,
   defaultAgent: DEFAULT_AGENT,
   defaultChatModel: DEFAULT_CHAT_MODEL,

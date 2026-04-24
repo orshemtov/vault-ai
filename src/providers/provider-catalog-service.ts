@@ -1,4 +1,4 @@
-import type { VaultAiPluginSettings, ProviderId } from "@app/settings";
+import type { OpenVaultAiPluginSettings, ProviderId } from "@app/settings";
 import {
   createEmptyProviderCatalogSnapshot,
   type ProviderCapabilityMetadata,
@@ -24,7 +24,7 @@ export class ProviderCatalogService {
 
   async refreshProvider(
     providerId: ProviderId,
-    settings: VaultAiPluginSettings
+    settings: OpenVaultAiPluginSettings
   ): Promise<ProviderCatalogSnapshot> {
     const adapter = this.registry.get(providerId);
     if (!adapter) {
@@ -69,7 +69,7 @@ export class ProviderCatalogService {
   }
 
   async refreshAll(
-    settings: VaultAiPluginSettings
+    settings: OpenVaultAiPluginSettings
   ): Promise<ProviderCatalogSnapshot[]> {
     const providers = this.registry.list().map((adapter) => adapter.id);
     return Promise.all(

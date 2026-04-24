@@ -5,12 +5,12 @@ import {
   SUPPORTED_PROVIDERS
 } from "@app/defaults";
 import { getFirstGenerationModelForProvider } from "@providers/provider-selection";
-import type { VaultAiPlugin } from "@app/plugin";
+import type { OpenVaultAiPlugin } from "@app/plugin";
 import type { ProviderId } from "@app/settings";
 import { PluginSettingTab, Setting } from "obsidian";
 
-export class VaultAiPluginSettingTab extends PluginSettingTab {
-  constructor(private readonly plugin: VaultAiPlugin) {
+export class OpenVaultAiPluginSettingTab extends PluginSettingTab {
+  constructor(private readonly plugin: OpenVaultAiPlugin) {
     super(plugin.app, plugin);
   }
 
@@ -18,7 +18,7 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "Vault AI" });
+    containerEl.createEl("h2", { text: "OpenVault AI" });
 
     const generalSection = createSection(containerEl, "General");
     const configurationSection = createSection(containerEl, "Configuration");
@@ -149,7 +149,7 @@ export class VaultAiPluginSettingTab extends PluginSettingTab {
 
 function renderProviderSettings(
   providerSection: HTMLElement,
-  plugin: VaultAiPlugin,
+  plugin: OpenVaultAiPlugin,
   providerId: ProviderId
 ): void {
   if (providerId === "openrouter") {
@@ -238,7 +238,7 @@ function createSection(
   title: string
 ): HTMLDivElement {
   const section = containerEl.createDiv({
-    cls: "vault-ai__settings-section"
+    cls: "openvault-ai__settings-section"
   });
   section.createEl("h3", { text: title });
   return section;

@@ -1,5 +1,5 @@
 import type { AgentDefinition } from "@agents/agent-types";
-import type { VaultAiPlugin } from "@app/plugin";
+import type { OpenVaultAiPlugin } from "@app/plugin";
 import { App, MarkdownView, TFile, normalizePath } from "obsidian";
 import { canAgentUseTool } from "./tool-permissions";
 import { ToolRegistry } from "./tool-registry";
@@ -142,7 +142,7 @@ export class ToolRuntime {
   }
 
   private async listMemories(query: string): Promise<string> {
-    const plugin = this.app as App & Partial<VaultAiPlugin>;
+    const plugin = this.app as App & Partial<OpenVaultAiPlugin>;
     const memories = (await plugin.listLongTermMemories?.()) ?? [];
     const normalizedQuery = query.trim().toLowerCase();
     const filtered = normalizedQuery
@@ -168,7 +168,7 @@ export class ToolRuntime {
     details: string,
     tags: string[]
   ): Promise<string> {
-    const plugin = this.app as App & Partial<VaultAiPlugin>;
+    const plugin = this.app as App & Partial<OpenVaultAiPlugin>;
     const memory = await plugin.saveLongTermMemory?.({
       type,
       summary,
@@ -194,7 +194,7 @@ export class ToolRuntime {
     tags: string[] | null,
     type: "preference" | "fact" | "lesson" | null
   ): Promise<string> {
-    const plugin = this.app as App & Partial<VaultAiPlugin>;
+    const plugin = this.app as App & Partial<OpenVaultAiPlugin>;
     const memory = await plugin.updateLongTermMemory?.(id, {
       ...(summary ? { summary } : {}),
       ...(details ? { details } : {}),
@@ -213,7 +213,7 @@ export class ToolRuntime {
   }
 
   private async deleteMemory(id: string): Promise<string> {
-    const plugin = this.app as App & Partial<VaultAiPlugin>;
+    const plugin = this.app as App & Partial<OpenVaultAiPlugin>;
     const deleted = await plugin.deleteLongTermMemory?.(id);
     if (!deleted) {
       throw new Error(`Memory '${id}' was not found.`);

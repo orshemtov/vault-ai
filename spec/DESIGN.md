@@ -218,7 +218,7 @@ This should not be overloaded into the main chat timeline.
 
 ```text
 +--------------------------------------------------+
-| Vault AI                                         |
+| OpenVault AI                                         |
 | [Ask v]  [Model v]  [Context v]       [Status]   |
 +--------------------------------------------------+
 | Active context: [[Current Note]] @Research.md    |

@@ -1,6 +1,6 @@
 {
-  "id": "vault-ai-assistant",
-  "name": "Vault AI",
+  "id": "openvault-ai",
+  "name": "OpenVault AI",
   "version": "0.0.1",
   "minAppVersion": "1.5.0",
   "description": "AI assistant for note-aware chat, editable conversations, custom agents, and flexible model providers.",

@@ -1,4 +1,4 @@
-.vault-ai__view {
+.openvault-ai__view {
   background: var(--background-primary);
   color: var(--text-normal);
   display: flex;
@@ -6,27 +6,27 @@
   height: 100%;
 }
 
-.vault-ai__header {
+.openvault-ai__header {
   align-items: center;
   display: flex;
   justify-content: space-between;
   padding: 14px 16px 12px;
 }
 
-.vault-ai__title-stack {
+.openvault-ai__title-stack {
   display: grid;
   gap: 3px;
   min-width: 0;
 }
 
-.vault-ai__title {
+.openvault-ai__title {
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0;
 }
 
-.vault-ai__subtitle {
+.openvault-ai__subtitle {
   color: var(--text-muted);
   font-size: 0.76rem;
   overflow: hidden;
@@ -34,13 +34,13 @@
   white-space: nowrap;
 }
 
-.vault-ai__header-actions {
+.openvault-ai__header-actions {
   align-items: center;
   display: flex;
   gap: 8px;
 }
 
-.vault-ai__header-button {
+.openvault-ai__header-button {
   align-items: center;
   background: color-mix(in srgb, var(--background-secondary) 88%, transparent);
   border: 1px solid
@@ -57,8 +57,8 @@
   padding: 0 12px;
 }
 
-.vault-ai__header-button.is-active,
-.vault-ai__header-button:hover {
+.openvault-ai__header-button.is-active,
+.openvault-ai__header-button:hover {
   background: color-mix(
     in srgb,
     var(--interactive-accent) 12%,
@@ -66,24 +66,24 @@
   );
 }
 
-.vault-ai__header-button--square {
+.openvault-ai__header-button--square {
   padding: 0;
   width: 34px;
 }
 
-.vault-ai__gear-icon {
+.openvault-ai__gear-icon {
   height: 16px;
   width: 16px;
 }
 
-.vault-ai__body {
+.openvault-ai__body {
   flex: 1;
   min-height: 0;
   padding: 0 12px 12px;
   position: relative;
 }
 
-.vault-ai__chat-surface {
+.openvault-ai__chat-surface {
   border: 1px solid
     color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
   border-radius: 18px;
@@ -94,12 +94,12 @@
   overflow: hidden;
 }
 
-.vault-ai__conversation-thread {
+.openvault-ai__conversation-thread {
   min-height: 0;
   overflow: hidden;
 }
 
-.vault-ai__conversation {
+.openvault-ai__conversation {
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -109,25 +109,25 @@
   padding: 20px 20px 16px;
 }
 
-.vault-ai__message {
+.openvault-ai__message {
   display: grid;
   flex: 0 0 auto;
   gap: 8px;
   max-width: min(92%, 860px);
 }
 
-.vault-ai__message-header {
+.openvault-ai__message-header {
   align-items: center;
   display: flex;
   gap: 10px;
   justify-content: space-between;
 }
 
-.vault-ai__message-header strong {
+.openvault-ai__message-header strong {
   font-size: 0.82rem;
 }
 
-.vault-ai__message--user {
+.openvault-ai__message--user {
   background: color-mix(in srgb, var(--background-secondary) 92%, transparent);
   border: 1px solid
     color-mix(in srgb, var(--background-modifier-border) 72%, transparent);
@@ -137,61 +137,61 @@
   padding: 12px 14px;
 }
 
-.vault-ai__message--assistant {
+.openvault-ai__message--assistant {
   justify-self: start;
 }
 
-.vault-ai__message-markdown {
+.openvault-ai__message-markdown {
   line-height: 1.6;
 }
 
-.vault-ai__message-markdown p,
-.vault-ai__message-markdown ul,
-.vault-ai__message-markdown ol,
-.vault-ai__message-markdown pre,
-.vault-ai__message-markdown blockquote,
-.vault-ai__message-markdown h1,
-.vault-ai__message-markdown h2,
-.vault-ai__message-markdown h3,
-.vault-ai__message-markdown h4 {
+.openvault-ai__message-markdown p,
+.openvault-ai__message-markdown ul,
+.openvault-ai__message-markdown ol,
+.openvault-ai__message-markdown pre,
+.openvault-ai__message-markdown blockquote,
+.openvault-ai__message-markdown h1,
+.openvault-ai__message-markdown h2,
+.openvault-ai__message-markdown h3,
+.openvault-ai__message-markdown h4 {
   margin-bottom: 0.7em;
   margin-top: 0;
 }
 
-.vault-ai__message-markdown > :last-child {
+.openvault-ai__message-markdown > :last-child {
   margin-bottom: 0;
 }
 
-.vault-ai__message-meta {
+.openvault-ai__message-meta {
   color: var(--text-muted);
   margin-top: 2px;
   opacity: 0.92;
 }
 
-.vault-ai__message-meta summary {
+.openvault-ai__message-meta summary {
   cursor: pointer;
   font-size: 0.78rem;
   list-style: none;
 }
 
-.vault-ai__message-meta summary::-webkit-details-marker {
+.openvault-ai__message-meta summary::-webkit-details-marker {
   display: none;
 }
 
-.vault-ai__message-source-list,
-.vault-ai__message-activity-list {
+.openvault-ai__message-source-list,
+.openvault-ai__message-activity-list {
   display: grid;
   gap: 6px;
   margin: 8px 0 0;
   padding-left: 0;
 }
 
-.vault-ai__message-source-list li,
-.vault-ai__message-activity-list li {
+.openvault-ai__message-source-list li,
+.openvault-ai__message-activity-list li {
   list-style: none;
 }
 
-.vault-ai__source-link {
+.openvault-ai__source-link {
   background: color-mix(in srgb, var(--background-secondary) 92%, transparent);
   border: 1px solid
     color-mix(in srgb, var(--background-modifier-border) 72%, transparent);
@@ -205,7 +205,7 @@
   width: 100%;
 }
 
-.vault-ai__source-link:hover {
+.openvault-ai__source-link:hover {
   background: color-mix(
     in srgb,
     var(--interactive-accent) 10%,
@@ -213,12 +213,12 @@
   );
 }
 
-.vault-ai__source-link-title {
+.openvault-ai__source-link-title {
   display: block;
   font-weight: 600;
 }
 
-.vault-ai__source-link-detail {
+.openvault-ai__source-link-detail {
   color: var(--text-muted);
   display: block;
   font-family: var(--font-monospace);
@@ -226,7 +226,7 @@
   margin-top: 2px;
 }
 
-.vault-ai__composer-shell {
+.openvault-ai__composer-shell {
   border-top: 1px solid
     color-mix(in srgb, var(--background-modifier-border) 72%, transparent);
   display: grid;
@@ -234,17 +234,17 @@
   padding: 12px;
 }
 
-.vault-ai__composer-input-wrap {
+.openvault-ai__composer-input-wrap {
   display: grid;
   position: relative;
 }
 
-.vault-ai__field {
+.openvault-ai__field {
   display: grid;
   gap: 6px;
 }
 
-.vault-ai__composer-field textarea {
+.openvault-ai__composer-field textarea {
   background: var(--background-primary);
   border: 1px solid
     color-mix(in srgb, var(--background-modifier-border) 76%, transparent);
@@ -256,7 +256,7 @@
   width: 100%;
 }
 
-.vault-ai__suggestions {
+.openvault-ai__suggestions {
   background: color-mix(in srgb, var(--background-secondary) 98%, transparent);
   border: 1px solid
     color-mix(in srgb, var(--background-modifier-border) 75%, transparent);
@@ -273,7 +273,7 @@
   z-index: 12;
 }
 
-.vault-ai__suggestion {
+.openvault-ai__suggestion {
   align-items: flex-start;
   background: transparent;
   border: 0;
@@ -289,8 +289,8 @@
   width: 100%;
 }
 
-.vault-ai__suggestion:hover,
-.vault-ai__suggestion.is-selected {
+.openvault-ai__suggestion:hover,
+.openvault-ai__suggestion.is-selected {
   background: color-mix(
     in srgb,
     var(--interactive-accent) 12%,
@@ -298,7 +298,7 @@
   );
 }
 
-.vault-ai__suggestion-leading {
+.openvault-ai__suggestion-leading {
   align-items: baseline;
   display: flex;
   gap: 8px;
@@ -306,7 +306,7 @@
   width: 100%;
 }
 
-.vault-ai__suggestion-title {
+.openvault-ai__suggestion-title {
   display: block;
   font-size: 0.84rem;
   font-weight: 600;
@@ -317,14 +317,14 @@
   white-space: nowrap;
 }
 
-.vault-ai__suggestion-detail {
+.openvault-ai__suggestion-detail {
   color: var(--text-muted);
   flex: 0 0 auto;
   font-size: 0.68rem;
   line-height: 1.2;
 }
 
-.vault-ai__suggestion-meta {
+.openvault-ai__suggestion-meta {
   color: var(--text-muted);
   font-size: 0.72rem;
   line-height: 1.25;
@@ -335,25 +335,25 @@
   width: 100%;
 }
 
-.vault-ai__composer-footer {
+.openvault-ai__composer-footer {
   align-items: center;
   display: flex;
   gap: 10px;
   justify-content: space-between;
 }
 
-.vault-ai__composer-controls {
+.openvault-ai__composer-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   position: relative;
 }
 
-.vault-ai__control-cluster {
+.openvault-ai__control-cluster {
   position: relative;
 }
 
-.vault-ai__control-button {
+.openvault-ai__control-button {
   align-items: center;
   background: var(--background-secondary);
   border: 1px solid
@@ -371,16 +371,16 @@
   text-align: left;
 }
 
-.vault-ai__control-button--compact {
+.openvault-ai__control-button--compact {
   max-width: 220px;
 }
 
-.vault-ai__control-button--model {
+.openvault-ai__control-button--model {
   max-width: 280px;
 }
 
-.vault-ai__control-button.is-active,
-.vault-ai__control-button:hover {
+.openvault-ai__control-button.is-active,
+.openvault-ai__control-button:hover {
   background: color-mix(
     in srgb,
     var(--interactive-accent) 10%,
@@ -388,7 +388,7 @@
   );
 }
 
-.vault-ai__control-value {
+.openvault-ai__control-value {
   font-size: 0.83rem;
   font-weight: 600;
   overflow: hidden;
@@ -396,59 +396,59 @@
   white-space: nowrap;
 }
 
-.vault-ai__send-button {
+.openvault-ai__send-button {
   border-radius: 10px;
   height: 34px;
   min-width: 88px;
   padding: 0 14px;
 }
 
-.vault-ai__native-suggest-item {
+.openvault-ai__native-suggest-item {
   display: grid;
   gap: 2px;
 }
 
-.vault-ai__native-suggest-title {
+.openvault-ai__native-suggest-title {
   font-size: 0.9rem;
   font-weight: 600;
 }
 
-.vault-ai__native-suggest-meta {
+.openvault-ai__native-suggest-meta {
   color: var(--text-muted);
   font-size: 0.76rem;
 }
 
-.vault-ai__settings-section {
+.openvault-ai__settings-section {
   border-top: 1px solid
     color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
   margin-top: 22px;
   padding-top: 16px;
 }
 
-.vault-ai__settings-section:first-of-type {
+.openvault-ai__settings-section:first-of-type {
   border-top: 0;
   margin-top: 0;
   padding-top: 0;
 }
 
-.vault-ai__settings-section > h3 {
+.openvault-ai__settings-section > h3 {
   font-size: 0.95rem;
   margin: 0 0 10px;
 }
 
-.vault-ai__settings-subsection {
+.openvault-ai__settings-subsection {
   color: var(--text-normal);
   font-size: 0.82rem;
   font-weight: 700;
   margin: 20px 0 8px;
 }
 
-.vault-ai__settings-intro {
+.openvault-ai__settings-intro {
   color: var(--text-muted);
   margin: 6px 0 0;
 }
 
-.vault-ai__settings-section .setting-item {
+.openvault-ai__settings-section .setting-item {
   border: 1px solid
     color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
   border-radius: 14px;
@@ -456,57 +456,57 @@
   padding: 14px 16px;
 }
 
-.vault-ai__settings-section .setting-item:last-child {
+.openvault-ai__settings-section .setting-item:last-child {
   margin-bottom: 0;
 }
 
-.vault-ai__settings-section .setting-item-control {
+.openvault-ai__settings-section .setting-item-control {
   min-width: 260px;
 }
 
 @media (max-width: 700px) {
-  .vault-ai__header {
+  .openvault-ai__header {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
   }
 
-  .vault-ai__header-actions {
+  .openvault-ai__header-actions {
     width: 100%;
   }
 
-  .vault-ai__header-button:not(.vault-ai__header-button--square) {
+  .openvault-ai__header-button:not(.openvault-ai__header-button--square) {
     flex: 1;
   }
 
-  .vault-ai__message {
+  .openvault-ai__message {
     max-width: 100%;
   }
 
-  .vault-ai__composer-footer {
+  .openvault-ai__composer-footer {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .vault-ai__composer-controls {
+  .openvault-ai__composer-controls {
     flex-direction: column;
   }
 
-  .vault-ai__control-button,
-  .vault-ai__control-button--compact,
-  .vault-ai__control-button--model {
+  .openvault-ai__control-button,
+  .openvault-ai__control-button--compact,
+  .openvault-ai__control-button--model {
     min-width: 100%;
     max-width: none;
     width: 100%;
   }
 
-  .vault-ai__control-popover,
-  .vault-ai__control-popover--model {
+  .openvault-ai__control-popover,
+  .openvault-ai__control-popover--model {
     min-width: 100%;
     right: 0;
   }
 
-  .vault-ai__send-button {
+  .openvault-ai__send-button {
     width: 100%;
   }
 }

@@ -1,4 +1,4 @@
-import type { VaultAiPlugin } from "@app/plugin";
+import type { OpenVaultAiPlugin } from "@app/plugin";
 import { AssistantShell } from "@ui/components/assistant-shell";
 import {
   VIEW_ICON_ASSISTANT,
@@ -13,7 +13,7 @@ export class AssistantView extends ItemView {
 
   constructor(
     leaf: WorkspaceLeaf,
-    private readonly plugin: VaultAiPlugin
+    private readonly plugin: OpenVaultAiPlugin
   ) {
     super(leaf);
   }
