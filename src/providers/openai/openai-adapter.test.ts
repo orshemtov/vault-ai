@@ -59,19 +59,17 @@ describe("OpenAiAdapter", () => {
   });
 
   it("streams assistant text from SSE chunks", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
+    vi.mocked(requestUrl).mockResolvedValue({
       status: 200,
-      body: createStreamFromChunks([
+      text: [
         'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
         'data: {"choices":[{"delta":{"content":" from OpenAI"}}]}\n\n',
         "data: [DONE]\n\n"
-      ])
-    });
-    vi.stubGlobal("fetch", fetchMock);
+      ].join("")
+    } as never);
 
     const deltas: string[] = [];
-    const result = await adapter.streamText!(
+    const result = await adapter.streamText(
       {
         modelId: "gpt-4.1",
         systemPrompt: "You are helpful.",
@@ -95,15 +93,3 @@ describe("OpenAiAdapter", () => {
     expect(result.text).toBe("Hello from OpenAI");
   });
 });
-
-function createStreamFromChunks(chunks: string[]): ReadableStream<Uint8Array> {
-  return new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
-      for (const chunk of chunks) {
-        controller.enqueue(encoder.encode(chunk));
-      }
-      controller.close();
-    }
-  });
-}

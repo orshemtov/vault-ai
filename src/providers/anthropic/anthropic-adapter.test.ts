@@ -59,18 +59,16 @@ describe("AnthropicAdapter", () => {
   });
 
   it("streams text deltas from SSE chunks", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
+    vi.mocked(requestUrl).mockResolvedValue({
       status: 200,
-      body: createStreamFromChunks([
+      text: [
         'data: {"type":"content_block_delta","delta":{"text":"Hello"}}\n\n',
         'data: {"type":"content_block_delta","delta":{"text":" from Anthropic"}}\n\n'
-      ])
-    });
-    vi.stubGlobal("fetch", fetchMock);
+      ].join("")
+    } as never);
 
     const deltas: string[] = [];
-    const result = await adapter.streamText!(
+    const result = await adapter.streamText(
       {
         modelId: "claude-3-5-sonnet-latest",
         systemPrompt: "You are helpful.",
@@ -94,15 +92,3 @@ describe("AnthropicAdapter", () => {
     expect(result.text).toBe("Hello from Anthropic");
   });
 });
-
-function createStreamFromChunks(chunks: string[]): ReadableStream<Uint8Array> {
-  return new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
-      for (const chunk of chunks) {
-        controller.enqueue(encoder.encode(chunk));
-      }
-      controller.close();
-    }
-  });
-}

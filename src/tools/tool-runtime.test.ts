@@ -139,10 +139,10 @@ function createApp() {
       getFileCache: () => null
     },
     fileManager: {
-      processFrontMatter: async () => undefined
+      processFrontMatter: () => undefined
     },
-    listLongTermMemories: async () => [...memoryMap.values()],
-    saveLongTermMemory: async (input: {
+    listLongTermMemories: () => Promise.resolve([...memoryMap.values()]),
+    saveLongTermMemory: (input: {
       type: "preference" | "fact" | "lesson";
       summary: string;
       details: string;
@@ -159,34 +159,33 @@ function createApp() {
         tags: input.tags ?? []
       };
       memoryMap.set(memory.id, memory);
-      return memory;
+      return Promise.resolve(memory);
     },
-    updateLongTermMemory: async (
+    updateLongTermMemory: (
       id: string,
       updates: { summary?: string; details?: string; tags?: string[] }
     ) => {
       const existing = memoryMap.get(id);
       if (!existing) {
-        return null;
+        return Promise.resolve(null);
       }
 
       const updated = { ...existing, ...updates };
       memoryMap.set(id, updated);
-      return updated;
+      return Promise.resolve(updated);
     },
-    deleteLongTermMemory: async (id: string) => memoryMap.delete(id),
+    deleteLongTermMemory: (id: string) => Promise.resolve(memoryMap.delete(id)),
     vault: {
       getMarkdownFiles: () => [...fileMap.values()],
       getAbstractFileByPath: (path: string) => fileMap.get(path) ?? null,
-      cachedRead: async (file: { path: string }) =>
-        contentMap.get(file.path) ?? "",
-      create: async (path: string, content: string) => {
+      cachedRead: (file: { path: string }) => contentMap.get(file.path) ?? "",
+      create: (path: string, content: string) => {
         const file = createFile(path);
         fileMap.set(path, file);
         contentMap.set(path, content);
         return file;
       },
-      modify: async (file: { path: string }, content: string) => {
+      modify: (file: { path: string }, content: string) => {
         contentMap.set(file.path, content);
       }
     }

@@ -23,16 +23,17 @@ describe("turn parser", () => {
     const result = await parseTurnInput({
       prompt: "/summarize Notes/Project.md",
       agents: agents as never,
-      expandCommand: async () => ({
-        command: {
-          id: "summarize",
-          description: "Summarize a note",
-          template: "Summarize $ARGUMENTS",
-          agent: "ask",
-          source: "vault"
-        },
-        prompt: "Summarize Notes/Project.md"
-      })
+      expandCommand: () =>
+        Promise.resolve({
+          command: {
+            id: "summarize",
+            description: "Summarize a note",
+            template: "Summarize $ARGUMENTS",
+            agent: "ask",
+            source: "vault"
+          },
+          prompt: "Summarize Notes/Project.md"
+        })
     });
 
     expect(result.prompt).toBe("Summarize Notes/Project.md");
@@ -44,7 +45,7 @@ describe("turn parser", () => {
     const result = await parseTurnInput({
       prompt: "@edit rewrite this note",
       agents: agents as never,
-      expandCommand: async () => null
+      expandCommand: () => Promise.resolve(null)
     });
 
     expect(result.agentId).toBe("edit");
@@ -56,7 +57,7 @@ describe("turn parser", () => {
     const result = await parseTurnInput({
       prompt: "compare @Project.md with the current note",
       agents: agents as never,
-      expandCommand: async () => null
+      expandCommand: () => Promise.resolve(null)
     });
 
     expect(result.noteMentions).toEqual(["Project.md"]);
@@ -66,7 +67,7 @@ describe("turn parser", () => {
     const result = await parseTurnInput({
       prompt: 'summarize @"Fleeting/Home gym.md" please',
       agents: agents as never,
-      expandCommand: async () => null
+      expandCommand: () => Promise.resolve(null)
     });
 
     expect(result.noteMentions).toEqual(["Fleeting/Home gym.md"]);
@@ -76,7 +77,7 @@ describe("turn parser", () => {
     const result = await parseTurnInput({
       prompt: "compare @all with @Project.md",
       agents: agents as never,
-      expandCommand: async () => null
+      expandCommand: () => Promise.resolve(null)
     });
 
     expect(result.includeAllNotes).toBe(true);

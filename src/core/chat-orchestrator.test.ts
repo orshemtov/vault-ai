@@ -106,9 +106,10 @@ describe("ChatOrchestrator", () => {
   it("calls the provider for normal prompts", async () => {
     const registry = {
       get: () => ({
-        generateText: async () => ({
-          text: "provider reply mentioning My note"
-        })
+        generateText: () =>
+          Promise.resolve({
+            text: "provider reply mentioning My note"
+          })
       })
     } as unknown as ProviderRegistry;
     const orchestrator = new ChatOrchestrator(registry);
@@ -167,9 +168,10 @@ describe("ChatOrchestrator", () => {
   it("does not attach citations when the answer does not support them", async () => {
     const registry = {
       get: () => ({
-        generateText: async () => ({
-          text: "General answer with no supporting references"
-        })
+        generateText: () =>
+          Promise.resolve({
+            text: "General answer with no supporting references"
+          })
       })
     } as unknown as ProviderRegistry;
     const orchestrator = new ChatOrchestrator(registry);
@@ -225,9 +227,10 @@ describe("ChatOrchestrator", () => {
   it("keeps retrieved citations when the answer overlaps the retrieved snippet", async () => {
     const registry = {
       get: () => ({
-        generateText: async () => ({
-          text: "The answer focuses on flooring and rack planning for the setup."
-        })
+        generateText: () =>
+          Promise.resolve({
+            text: "The answer focuses on flooring and rack planning for the setup."
+          })
       })
     } as unknown as ProviderRegistry;
     const orchestrator = new ChatOrchestrator(registry);
@@ -292,16 +295,16 @@ describe("ChatOrchestrator", () => {
     const deltas: string[] = [];
     const registry = {
       get: () => ({
-        streamText: async (
+        streamText: (
           _request: unknown,
           _settings: unknown,
           callbacks: { onDelta: (delta: string) => void }
         ) => {
           callbacks.onDelta("Hello");
           callbacks.onDelta(" world");
-          return { text: "Hello world" };
+          return Promise.resolve({ text: "Hello world" });
         },
-        generateText: async () => ({ text: "fallback" })
+        generateText: () => Promise.resolve({ text: "fallback" })
       })
     } as unknown as ProviderRegistry;
     const orchestrator = new ChatOrchestrator(registry);
@@ -362,7 +365,7 @@ describe("ChatOrchestrator", () => {
     const deltas: string[] = [];
     const registry = {
       get: () => ({
-        streamText: async (
+        streamText: (
           request: { userPrompt: string },
           _settings: unknown,
           callbacks: { onDelta: (delta: string) => void }
@@ -371,23 +374,26 @@ describe("ChatOrchestrator", () => {
           callbacks.onDelta(
             '```TOOL_CALL\n{"toolId":"read-note","input":{"path":"Notes/My note.md"}}\n```'
           );
-          return {
+          return Promise.resolve({
             text: '```TOOL_CALL\n{"toolId":"read-note","input":{"path":"Notes/My note.md"}}\n```'
-          };
+          });
         },
-        generateText: async (request: { userPrompt: string }) => {
+        generateText: (request: { userPrompt: string }) => {
           calls.push(request.userPrompt);
-          return { text: "Final streamed answer after tool output" };
+          return Promise.resolve({
+            text: "Final streamed answer after tool output"
+          });
         }
       })
     } as unknown as ProviderRegistry;
     const toolRuntime = {
-      runTool: async () => ({
-        status: "allowed",
-        toolId: "read-note",
-        message: "Tool 'read-note' completed successfully.",
-        output: "Tool output"
-      })
+      runTool: () =>
+        Promise.resolve({
+          status: "allowed",
+          toolId: "read-note",
+          message: "Tool 'read-note' completed successfully.",
+          output: "Tool output"
+        })
     } as unknown as ToolRuntime;
     const orchestrator = new ChatOrchestrator(registry, toolRuntime);
 
@@ -457,27 +463,28 @@ describe("ChatOrchestrator", () => {
     const calls: string[] = [];
     const registry = {
       get: () => ({
-        generateText: async (request: { userPrompt: string }) => {
+        generateText: (request: { userPrompt: string }) => {
           calls.push(request.userPrompt);
           if (calls.length === 1) {
-            return {
+            return Promise.resolve({
               text: '```TOOL_CALL\n{"toolId":"read-note","input":{"path":"Notes/My note.md"}}\n```'
-            };
+            });
           }
 
-          return {
+          return Promise.resolve({
             text: "Final answer after tool output"
-          };
+          });
         }
       })
     } as unknown as ProviderRegistry;
     const toolRuntime = {
-      runTool: async () => ({
-        status: "allowed",
-        toolId: "read-note",
-        message: "Tool 'read-note' completed successfully.",
-        output: "Tool output"
-      })
+      runTool: () =>
+        Promise.resolve({
+          status: "allowed",
+          toolId: "read-note",
+          message: "Tool 'read-note' completed successfully.",
+          output: "Tool output"
+        })
     } as unknown as ToolRuntime;
     const orchestrator = new ChatOrchestrator(registry, toolRuntime);
 
@@ -540,18 +547,20 @@ describe("ChatOrchestrator", () => {
   it("returns a clear explanation for approval-required tool calls", async () => {
     const registry = {
       get: () => ({
-        generateText: async () => ({
-          text: '```TOOL_CALL\n{"toolId":"read-note","input":{"path":"Notes/My note.md"}}\n```'
-        })
+        generateText: () =>
+          Promise.resolve({
+            text: '```TOOL_CALL\n{"toolId":"read-note","input":{"path":"Notes/My note.md"}}\n```'
+          })
       })
     } as unknown as ProviderRegistry;
     const toolRuntime = {
-      runTool: async () => ({
-        status: "approval-required",
-        toolId: "read-note",
-        message:
-          "Tool 'read-note' requires explicit approval before it can run."
-      })
+      runTool: () =>
+        Promise.resolve({
+          status: "approval-required",
+          toolId: "read-note",
+          message:
+            "Tool 'read-note' requires explicit approval before it can run."
+        })
     } as unknown as ToolRuntime;
     const orchestrator = new ChatOrchestrator(registry, toolRuntime);
 

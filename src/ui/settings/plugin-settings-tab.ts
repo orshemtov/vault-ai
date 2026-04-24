@@ -18,7 +18,7 @@ export class OpenVaultAiPluginSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "OpenVault AI" });
+    new Setting(containerEl).setName("OpenVault AI").setHeading();
 
     const generalSection = createSection(containerEl, "General");
     const configurationSection = createSection(containerEl, "Configuration");
@@ -240,6 +240,6 @@ function createSection(
   const section = containerEl.createDiv({
     cls: "openvault-ai__settings-section"
   });
-  section.createEl("h3", { text: title });
+  new Setting(section).setName(title).setHeading();
   return section;
 }

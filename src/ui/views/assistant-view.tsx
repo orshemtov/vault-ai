@@ -33,12 +33,14 @@ export class AssistantView extends ItemView {
   override async onOpen(): Promise<void> {
     this.root = createRoot(this.contentEl);
     this.render();
+    await Promise.resolve();
   }
 
   override async onClose(): Promise<void> {
     this.root?.unmount();
     this.root = null;
     this.contentEl.empty();
+    await Promise.resolve();
   }
 
   render(): void {

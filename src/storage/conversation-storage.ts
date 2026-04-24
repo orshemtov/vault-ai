@@ -91,7 +91,7 @@ export class ConversationStorage {
     );
   }
 
-  private async createConversationPath(): Promise<string> {
+  private createConversationPath(): string {
     const fileName = createConversationFileName();
     const baseName = fileName.replace(/\.md$/, "");
     let candidate = normalizePath(`${this.conversationsRoot}/${fileName}`);

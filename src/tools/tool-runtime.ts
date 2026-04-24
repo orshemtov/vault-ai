@@ -129,7 +129,7 @@ export class ToolRuntime {
     }
   }
 
-  private async getCurrentDate(): Promise<string> {
+  private getCurrentDate(): string {
     const now = new Date();
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -237,7 +237,7 @@ export class ToolRuntime {
     ]);
   }
 
-  private async getSelection(): Promise<string> {
+  private getSelection(): string {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     const file = view?.file;
     const selection = view?.editor?.getSelection()?.trim() ?? "";
@@ -294,7 +294,7 @@ export class ToolRuntime {
     ]);
   }
 
-  private async listNotesInFolder(folder: string): Promise<string> {
+  private listNotesInFolder(folder: string): string {
     const normalizedFolder = normalizeFolder(folder);
     const matches = this.app.vault
       .getMarkdownFiles()
@@ -338,7 +338,7 @@ export class ToolRuntime {
     return formatToolResult("update-note", [`Updated: ${file.path}`]);
   }
 
-  private async readFrontmatter(path: string): Promise<string> {
+  private readFrontmatter(path: string): string {
     const file = this.getMarkdownFile(path);
     const frontmatter =
       this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};

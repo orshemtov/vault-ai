@@ -140,8 +140,7 @@ function createApp(
     vault: {
       on: () => () => undefined,
       getMarkdownFiles: () => [...fileMap.values()],
-      cachedRead: async (file: { path: string }) =>
-        contentMap.get(file.path) ?? ""
+      cachedRead: (file: { path: string }) => contentMap.get(file.path) ?? ""
     }
   };
 }
@@ -160,8 +159,7 @@ function createMutableApp(
         return () => undefined;
       },
       getMarkdownFiles: () => [...fileMap.values()],
-      cachedRead: async (file: { path: string }) =>
-        contentMap.get(file.path) ?? ""
+      cachedRead: (file: { path: string }) => contentMap.get(file.path) ?? ""
     },
     async modifyFile(path: string, content: string) {
       const file = fileMap.get(path);
@@ -171,8 +169,10 @@ function createMutableApp(
 
       contentMap.set(path, content);
       for (const callback of listeners.get("modify") ?? []) {
-        await callback(file);
+        callback(file);
       }
+
+      await Promise.resolve();
     }
   };
 }

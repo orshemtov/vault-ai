@@ -143,7 +143,7 @@ export class MemoryStorage {
       return false;
     }
 
-    await this.app.vault.delete(file);
+    await this.app.fileManager.trashFile(file);
     return true;
   }
 
@@ -164,10 +164,7 @@ export class MemoryStorage {
     };
   }
 
-  private async createMemoryPath(
-    namespace: string,
-    summary: string
-  ): Promise<string> {
+  private createMemoryPath(namespace: string, summary: string): string {
     const slug =
       summary
         .toLowerCase()
@@ -219,7 +216,7 @@ export class MemoryStorage {
     if (previousPath && previousPath !== entry.path) {
       const previousFile = this.app.vault.getAbstractFileByPath(previousPath);
       if (previousFile instanceof TFile) {
-        await this.app.vault.delete(previousFile);
+        await this.app.fileManager.trashFile(previousFile);
       }
     }
   }

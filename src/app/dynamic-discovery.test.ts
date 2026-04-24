@@ -85,8 +85,7 @@ function createApp() {
   return {
     vault: {
       getMarkdownFiles: () => [...files.values()],
-      cachedRead: async (file: { path: string }) =>
-        contents.get(file.path) ?? ""
+      cachedRead: (file: { path: string }) => contents.get(file.path) ?? ""
     },
     addFile(path: string, content: string) {
       const file = new TFile();

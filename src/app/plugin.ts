@@ -100,16 +100,16 @@ export class OpenVaultAiPlugin extends Plugin {
     void this.refreshProviderCatalogs();
 
     if (this.settings.enableIndexingOnStartup) {
-      this.retrievalService?.start();
+      void this.retrievalService?.start();
     }
 
-    this.schedulerService?.start();
+    void this.schedulerService?.start();
   }
 
-  override async onunload(): Promise<void> {
+  override onunload(): void {
     this.retrievalService?.stop();
     this.schedulerService?.stop();
-    await this.app.workspace.detachLeavesOfType(this.viewType);
+    this.app.workspace.detachLeavesOfType(this.viewType);
   }
 
   async updateSettings(
@@ -172,7 +172,7 @@ export class OpenVaultAiPlugin extends Plugin {
     return this.commandsRegistry.listCommands();
   }
 
-  async listMentionableNotePaths(query = ""): Promise<string[]> {
+  listMentionableNotePaths(query = ""): string[] {
     const normalizedQuery = query.trim().toLowerCase();
     const matches = this.app.vault
       .getMarkdownFiles()
@@ -435,7 +435,7 @@ export class OpenVaultAiPlugin extends Plugin {
       active: true
     });
 
-    this.app.workspace.revealLeaf(leaf);
+    void this.app.workspace.revealLeaf(leaf);
   }
 
   async toggleAssistantView(): Promise<void> {
@@ -703,24 +703,24 @@ export class OpenVaultAiPlugin extends Plugin {
   private registerCommands(): void {
     this.addCommand({
       id: "open-assistant",
-      name: "Open OpenVault",
-      callback: async () => {
-        await this.activateAssistantView();
+      name: "Open assistant",
+      callback: () => {
+        void this.activateAssistantView();
       }
     });
 
     this.addCommand({
       id: "toggle-assistant",
-      name: "Toggle OpenVault AI",
-      callback: async () => {
-        await this.toggleAssistantView();
+      name: "Toggle assistant",
+      callback: () => {
+        void this.toggleAssistantView();
       }
     });
 
     this.addCommand({
       id: "show-scaffold-status",
       name: "Show scaffold status",
-      callback: async () => {
+      callback: () => {
         const providers = this.providerRegistry.list();
         const toolFamilies = this.toolRegistry.listToolFamilies().join(", ");
         const agentsRoot = this.settings.agentsRoot;

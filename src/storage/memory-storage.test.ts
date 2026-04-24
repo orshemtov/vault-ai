@@ -73,25 +73,31 @@ function createApp() {
   const folderSet = new Set<string>();
 
   return {
+    fileManager: {
+      trashFile: (file: { path: string }) => {
+        fileMap.delete(file.path);
+        contentMap.delete(file.path);
+        return Promise.resolve();
+      }
+    },
     vault: {
       getMarkdownFiles: () => [...fileMap.values()],
       getAbstractFileByPath: (path: string) =>
         fileMap.get(path) ?? (folderSet.has(path) ? { path } : null),
-      cachedRead: async (file: { path: string }) =>
-        contentMap.get(file.path) ?? "",
-      createFolder: async (path: string) => {
+      cachedRead: (file: { path: string }) => contentMap.get(file.path) ?? "",
+      createFolder: (path: string) => {
         folderSet.add(path);
       },
-      create: async (path: string, content: string) => {
+      create: (path: string, content: string) => {
         const file = createFile(path);
         fileMap.set(path, file);
         contentMap.set(path, content);
         return file;
       },
-      modify: async (file: { path: string }, content: string) => {
+      modify: (file: { path: string }, content: string) => {
         contentMap.set(file.path, content);
       },
-      delete: async (file: { path: string }) => {
+      delete: (file: { path: string }) => {
         fileMap.delete(file.path);
         contentMap.delete(file.path);
       }
