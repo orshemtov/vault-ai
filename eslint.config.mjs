@@ -36,8 +36,12 @@ export default [
       obsidianmd
     },
     rules: {
-      ...obsidianmd.configs.recommended[0].rules,
       ...tseslint.configs.recommendedTypeChecked[1].rules,
+      "obsidianmd/commands/no-plugin-name-in-command-name": "error",
+      "obsidianmd/detach-leaves": "error",
+      "obsidianmd/settings-tab/no-manual-html-headings": "error",
+      "obsidianmd/settings-tab/no-problematic-settings-headings": "error",
+      "obsidianmd/ui/sentence-case": ["error", { enforceCamelCaseLower: true }],
       "no-unused-vars": "off",
       "@typescript-eslint/await-thenable": "error",
       "@typescript-eslint/no-confusing-void-expression": "error",

@@ -109,7 +109,6 @@ export class OpenVaultAiPlugin extends Plugin {
   override onunload(): void {
     this.retrievalService?.stop();
     this.schedulerService?.stop();
-    this.app.workspace.detachLeavesOfType(this.viewType);
   }
 
   async updateSettings(

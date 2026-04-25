@@ -18,9 +18,7 @@ export class OpenVaultAiPluginSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName("OpenVault AI").setHeading();
-
-    const generalSection = createSection(containerEl, "General");
+    const generalSection = createSection(containerEl, "Model provider");
     const configurationSection = createSection(containerEl, "Configuration");
     const vaultSection = createSection(containerEl, "Vault");
     const advancedSection = createSection(containerEl, "Advanced");
@@ -167,7 +165,7 @@ function renderProviderSettings(
     new Setting(providerSection).setName("API key").addText((text) => {
       text.inputEl.type = "password";
       text
-        .setPlaceholder("sk-or-v1-...")
+        .setPlaceholder("Enter API key")
         .setValue(plugin.settings.openRouterApiKey)
         .onChange(async (value) => {
           await plugin.updateSettings({
@@ -201,7 +199,7 @@ function renderProviderSettings(
     new Setting(providerSection).setName("API key").addText((text) => {
       text.inputEl.type = "password";
       text
-        .setPlaceholder("sk-...")
+        .setPlaceholder("Enter API key")
         .setValue(plugin.settings.openAiApiKey)
         .onChange(async (value) => {
           await plugin.updateSettings({
@@ -223,7 +221,7 @@ function renderProviderSettings(
   new Setting(providerSection).setName("API key").addText((text) => {
     text.inputEl.type = "password";
     text
-      .setPlaceholder("sk-ant-...")
+      .setPlaceholder("Enter API key")
       .setValue(plugin.settings.anthropicApiKey)
       .onChange(async (value) => {
         await plugin.updateSettings({
